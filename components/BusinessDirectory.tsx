@@ -4,6 +4,8 @@ import type { Business } from '../types';
 import { Star, Grid3x3, List, MapPin, CheckCircle, ArrowLeft } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 import { GlassCard } from './GlassCard';
+import { getBusinessName } from '../src/lib/utils';
+import { getVerifiedBusinesses } from '../src/lib/supabase';
 
 interface BusinessCardProps {
   business: Business;
@@ -11,11 +13,8 @@ interface BusinessCardProps {
 }
 
 const BusinessCard: React.FC<BusinessCardProps> = ({ business, viewMode }) => {
-  const { t, lang } = useTranslations();
-  
-  const displayName = lang === 'ar' && business.nameAr ? business.nameAr : 
-                      lang === 'ku' && business.nameKu ? business.nameKu : 
-                      business.name;
+  const { t } = useTranslations();
+  const displayName = getBusinessName(business.name);
                       
   const displayImage = business.imageUrl || business.image || business.coverImage || 'https://picsum.photos/seed/placeholder/400/300';
   const displayReviews = business.reviewCount ?? business.reviews ?? 0;
@@ -26,7 +25,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({ business, viewMode }) => {
       <GlassCard className="p-4 flex gap-4 text-start rtl:text-right">
         <img src={displayImage} alt={displayName} className="w-24 h-24 rounded-xl object-cover flex-shrink-0" />
         <div className="flex-1">
-          <h3 className="text-white font-semibold text-lg mb-1">{displayName}</h3>
+          <h3 className="text-white font-semibold text-lg mb-1 business-name">{displayName}</h3>
           <p className="text-white/60 text-sm mb-2">{t(categories.find(c => c.id === business.category)?.nameKey || business.category)}</p>
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1"><Star className="w-4 h-4 text-accent fill-accent" /><span className="text-white">{business.rating}</span></div>
@@ -48,7 +47,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({ business, viewMode }) => {
         {isVerified && <div className="absolute top-3 end-3 w-8 h-8 rounded-full bg-secondary flex items-center justify-center"><CheckCircle className="w-5 h-5 text-dark-bg" /></div>}
       </div>
       <div className="p-5">
-        <h3 className="text-white font-semibold text-lg mb-2">{displayName}</h3>
+        <h3 className="text-white font-semibold text-lg mb-2 business-name">{displayName}</h3>
         <p className="text-white/60 text-sm mb-3">{t(categories.find(c => c.id === business.category)?.nameKey || business.category)}</p>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1"><Star className="w-4 h-4 text-accent fill-accent" /><span className="text-white font-medium">{business.rating}</span><span className="text-white/60 text-sm">({displayReviews})</span></div>
@@ -68,19 +67,48 @@ interface BusinessDirectoryProps {
 export const BusinessDirectory: React.FC<BusinessDirectoryProps> = ({ initialFilter, onBack }) => {
   const [filters, setFilters] = useState({ category: initialFilter?.categoryId || 'all', rating: 0 });
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [directoryBusinesses, setDirectoryBusinesses] = useState<Business[]>(businesses);
   const { t } = useTranslations();
 
   useEffect(() => {
     setFilters(prev => ({...prev, category: initialFilter?.categoryId || 'all'}));
   }, [initialFilter]);
 
+  useEffect(() => {
+    const fetchBusinesses = async () => {
+      const { data, error } = await getVerifiedBusinesses();
+
+      if (error || !data) {
+        console.error('Failed to fetch verified businesses:', error);
+        return;
+      }
+
+      const normalizedBusinesses: Business[] = data.map((business) => ({
+        id: business.id,
+        name: business.name,
+        category: business.category || 'business_services',
+        rating: 5,
+        city: business.city ?? undefined,
+        governorate: business.governorate ?? undefined,
+        address: business.address ?? undefined,
+        phone: business.phone ?? undefined,
+        verified: business.verified ?? undefined,
+        imageUrl: business.postcard?.image_url || business.location?.image_url || undefined,
+      }));
+
+      setDirectoryBusinesses(normalizedBusinesses);
+    };
+
+    fetchBusinesses();
+  }, []);
+
   const filteredBusinesses = useMemo(() => {
-    return businesses.filter(business => {
+    return directoryBusinesses.filter(business => {
       const categoryMatch = filters.category === 'all' || business.category === filters.category;
       const ratingMatch = business.rating >= filters.rating;
       return categoryMatch && ratingMatch;
     });
-  }, [filters]);
+  }, [directoryBusinesses, filters]);
 
   return (
     <section className="py-16">

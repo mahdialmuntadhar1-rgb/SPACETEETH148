@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
+          '@supabase/supabase-js': path.resolve(__dirname, 'src/shims/supabase-js.ts'),
         }
       }
     };

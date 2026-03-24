@@ -1,11 +1,46 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { businesses } from '../constants';
+import type { Business } from '../types';
 import { Crown, Star, MapPin, Clock } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 import { GlassCard } from './GlassCard';
+import { getBusinessName } from '../src/lib/utils';
+import { getVerifiedBusinesses } from '../src/lib/supabase';
 
 export const FeaturedBusinesses: React.FC = () => {
-  const { t, lang } = useTranslations();
+  const { t } = useTranslations();
+  const [featuredBusinesses, setFeaturedBusinesses] = useState<Business[]>(
+    businesses.filter((b) => b.isFeatured || b.isPremium),
+  );
+
+  useEffect(() => {
+    const fetchFeaturedBusinesses = async () => {
+      const { data, error } = await getVerifiedBusinesses();
+
+      if (error || !data) {
+        console.error('Failed to fetch featured businesses:', error);
+        return;
+      }
+
+      const normalizedBusinesses: Business[] = data.slice(0, 12).map((business) => ({
+        id: business.id,
+        name: business.name,
+        category: business.category || 'business_services',
+        rating: 5,
+        city: business.city ?? undefined,
+        governorate: business.governorate ?? undefined,
+        address: business.address ?? undefined,
+        phone: business.phone ?? undefined,
+        verified: business.verified ?? undefined,
+        imageUrl: business.postcard?.image_url || business.location?.image_url || undefined,
+        isFeatured: true,
+      }));
+
+      setFeaturedBusinesses(normalizedBusinesses);
+    };
+
+    fetchFeaturedBusinesses();
+  }, []);
 
   return (
     <section className="py-16 relative overflow-hidden">
@@ -15,10 +50,8 @@ export const FeaturedBusinesses: React.FC = () => {
           {t('featured.title')}
         </h2>
         <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-          {businesses.filter(b => b.isFeatured || b.isPremium).map((business) => {
-            const displayName = lang === 'ar' && business.nameAr ? business.nameAr : 
-                                lang === 'ku' && business.nameKu ? business.nameKu : 
-                                business.name;
+          {featuredBusinesses.map((business) => {
+            const displayName = getBusinessName(business.name);
             const displayImage = business.coverImage || business.imageUrl || business.image || 'https://picsum.photos/seed/placeholder/600/400';
             const isPremium = business.isPremium || business.isFeatured;
             
@@ -44,7 +77,7 @@ export const FeaturedBusinesses: React.FC = () => {
               <div className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <div className="text-start">
-                    <h3 className="text-white font-semibold text-lg mb-1">{displayName}</h3>
+                    <h3 className="text-white font-semibold text-lg mb-1 business-name">{displayName}</h3>
                     <p className="text-white/60 text-sm">{t(`categories.${business.category}`)}</p>
                   </div>
                   <div className="flex items-center gap-1">

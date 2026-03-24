@@ -1,4 +1,5 @@
 import type React from 'react';
+import type { BusinessNameField } from './src/lib/utils';
 
 export interface Story {
   id: number;
@@ -34,7 +35,7 @@ export interface Category {
 
 export interface Business {
   id: string | number;
-  name: string;
+  name: BusinessNameField;
   nameAr?: string;
   nameKu?: string;
   coverImage?: string;
