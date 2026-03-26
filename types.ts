@@ -34,16 +34,16 @@ export interface Category {
 
 export interface Business {
   id: string | number;
-  name: string;
+  name?: string;
   nameAr?: string;
   nameKu?: string;
   coverImage?: string;
   imageUrl?: string;
   isPremium?: boolean;
   isFeatured?: boolean;
-  category: string;
+  category?: string;
   subcategory?: string;
-  rating: number;
+  rating?: number;
   distance?: number;
   status?: string;
   image?: string;

@@ -30,9 +30,12 @@ Required for launch:
 Optional:
 - none currently required by runtime
 
-Obsolete:
-- `VITE_CLOUDFLARE_ACCOUNT_ID` (not used by app runtime)
-- `VITE_CLOUDFLARE_PROJECT_NAME` (not used by app runtime)
+Obsolete for private-test runtime (do not set as required vars):
+- `VITE_AI_API_BASE_URL`
+- `VITE_CLOUDFLARE_ACCOUNT_ID`
+- `VITE_CLOUDFLARE_PROJECT_NAME`
+- `VITE_CLOUDFLARE_WORKER_NAME`
+- `GEMINI_API_KEY`
 
 ## 3) Build / Preflight
 

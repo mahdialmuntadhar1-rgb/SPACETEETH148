@@ -32,6 +32,11 @@ export const BusinessDetailsModal: React.FC<BusinessDetailsModalProps> = ({ busi
       ? business.website
       : `https://${business.website}`
     : null;
+  const socialLinks = [
+    { key: 'instagram', label: 'Instagram', url: (business as any).instagram as string | undefined },
+    { key: 'facebook', label: 'Facebook', url: (business as any).facebook as string | undefined },
+    { key: 'tiktok', label: 'TikTok', url: (business as any).tiktok as string | undefined },
+  ].filter((item) => Boolean(item.url));
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
@@ -68,22 +73,42 @@ export const BusinessDetailsModal: React.FC<BusinessDetailsModalProps> = ({ busi
           {displayDescription && <p className="text-white/80 leading-relaxed">{displayDescription}</p>}
 
           <div className="grid sm:grid-cols-2 gap-3 text-sm">
-            {(business.governorate || business.city || business.address) && (
-              <div className="flex items-center gap-2 text-white/70">
-                <MapPin className="w-4 h-4" />
-                {[business.address, business.city, business.governorate].filter(Boolean).join(', ')}
-              </div>
-            )}
-            {business.phone && (
-              <div className="flex items-center gap-2 text-white/70">
-                <span className="text-white/50">☎</span>
+            <div className="flex items-center gap-2 text-white/70">
+              <MapPin className="w-4 h-4" />
+              {[business.address, business.city, business.governorate].filter(Boolean).join(', ') || (t('common.notAvailable') || 'N/A')}
+            </div>
+            <div className="flex items-center gap-2 text-white/70">
+              <span className="text-white/50">☎</span>
+              {business.phone ? (
                 <a className="hover:text-white" href={`tel:${business.phone}`}>{business.phone}</a>
-              </div>
-            )}
-            {websiteHref && (
-              <div className="flex items-center gap-2 text-white/70 sm:col-span-2">
-                <Globe className="w-4 h-4" />
+              ) : (
+                <span>{t('common.notAvailable') || 'N/A'}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-white/70 sm:col-span-2">
+              <Globe className="w-4 h-4" />
+              {websiteHref ? (
                 <a className="hover:text-white break-all" href={websiteHref} target="_blank" rel="noreferrer">{business.website}</a>
+              ) : (
+                <span>{t('common.notAvailable') || 'N/A'}</span>
+              )}
+            </div>
+            {socialLinks.length > 0 && (
+              <div className="sm:col-span-2 text-white/70">
+                <span className="text-white/50 me-2">{t('common.social') || 'Social'}:</span>
+                <div className="inline-flex flex-wrap gap-3">
+                  {socialLinks.map((item) => (
+                    <a
+                      key={item.key}
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-white underline underline-offset-2"
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
           </div>
