@@ -88,11 +88,11 @@ export const FeaturedBusinesses: React.FC = () => {
                 <div className="flex items-center gap-4 text-sm text-white/60 mb-4">
                   <div className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />
-                    {business.distance || '1.2'} km
+                    {business.distance ? `${business.distance} km` : (t('common.notAvailable') || 'N/A')}
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
-                    {business.status || 'Open'}
+                    {business.status || (t('common.notAvailable') || 'N/A')}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">

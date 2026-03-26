@@ -39,13 +39,13 @@ async function handleSupabaseError(error: unknown, operationType: OperationType,
 const toDate = (value: string | Date | null | undefined) => (value ? new Date(value) : new Date());
 
 export const api = {
-  async getBusinesses(params: { category?: string; city?: string; governorate?: string; lastDoc?: number; limit?: number; featuredOnly?: boolean } = {}) {
+  async getBusinesses(params: { category?: string; city?: string; governorate?: string; lastDoc?: number; limit?: number; featuredOnly?: boolean; ratingMin?: number } = {}) {
     const path = 'businesses';
     try {
       const pageSize = params.limit || 20;
       const offset = params.lastDoc || 0;
 
-      let query = supabase.from(path).select('*').order('name', { ascending: true });
+      let query = supabase.from(path).select('*', { count: 'exact' }).order('name', { ascending: true });
 
       if (params.category && params.category !== 'all') {
         query = query.eq('category', params.category);
@@ -63,7 +63,11 @@ export const api = {
         query = query.ilike('city', `%${params.city.trim()}%`);
       }
 
-      const { data, error } = await query.range(offset, offset + pageSize - 1);
+      if (params.ratingMin && params.ratingMin > 0) {
+        query = query.gte('rating', params.ratingMin);
+      }
+
+      const { data, error, count } = await query.range(offset, offset + pageSize - 1);
 
       if (error) {
         throw error;
@@ -77,17 +81,19 @@ export const api = {
       return {
         data: normalized,
         lastDoc: offset + normalized.length,
-        hasMore: normalized.length === pageSize,
+        hasMore: typeof count === 'number' ? offset + normalized.length < count : normalized.length === pageSize,
+        totalCount: count ?? normalized.length,
       };
     } catch (error) {
       await handleSupabaseError(error, OperationType.GET, path);
-      return { data: [], lastDoc: 0, hasMore: false };
+      return { data: [], lastDoc: 0, hasMore: false, totalCount: 0 };
     }
   },
 
   subscribeToPosts(callback: (posts: Post[]) => void) {
     const path = 'posts';
     let channel: RealtimeChannel | null = null;
+    const postMap = new Map<string, Post>();
 
     const loadPosts = async () => {
       const { data, error } = await supabase.from(path).select('*').order('createdAt', { ascending: false }).limit(50);
@@ -96,20 +102,37 @@ export const api = {
         return;
       }
 
-      callback(
-        (data || []).map((post: any) => ({
+      const normalized = (data || []).map((post: any) => ({
           ...post,
           createdAt: toDate(post.createdAt),
-        })) as Post[],
-      );
+      })) as Post[];
+
+      postMap.clear();
+      normalized.forEach((post) => postMap.set(post.id, post));
+      callback(Array.from(postMap.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
     };
 
     void loadPosts();
 
     channel = supabase
-      .channel('posts-feed')
-      .on('postgres_changes', { event: '*', schema: 'public', table: path }, () => {
-        void loadPosts();
+      .channel(`posts-feed-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: path }, (payload) => {
+        const eventType = payload.eventType;
+        const newRecord = payload.new as Post | undefined;
+        const oldRecord = payload.old as Post | undefined;
+
+        if (eventType === 'DELETE' && oldRecord?.id) {
+          postMap.delete(oldRecord.id);
+        }
+
+        if ((eventType === 'INSERT' || eventType === 'UPDATE') && newRecord?.id) {
+          postMap.set(newRecord.id, {
+            ...newRecord,
+            createdAt: toDate((newRecord as any).createdAt),
+          });
+        }
+
+        callback(Array.from(postMap.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
       })
       .subscribe();
 

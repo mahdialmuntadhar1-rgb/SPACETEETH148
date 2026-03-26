@@ -17,6 +17,7 @@ This app uses a Supabase-first architecture for authentication, data APIs, and r
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_CLOUDFLARE_ACCOUNT_ID` (required for deployment workflows)
    - `VITE_CLOUDFLARE_PROJECT_NAME` (required for deployment workflows)
+   - `VITE_CLOUDFLARE_WORKER_NAME` (optional; only if your deployment scripts target Workers directly)
    - `GEMINI_API_KEY` (if using Gemini features)
 3. Run the app:
    `npm run dev`
@@ -24,6 +25,17 @@ This app uses a Supabase-first architecture for authentication, data APIs, and r
 ## Build
 
 `npm run build`
+
+## Preflight / Launch Checks
+
+Use the preflight script before release:
+
+`./scripts/preflight.sh`
+
+It validates:
+- Type/lint checks (`npm run lint`)
+- Production build (`npm run build`)
+- Required Supabase + Cloudflare environment variables
 
 ## Architecture
 

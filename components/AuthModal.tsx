@@ -5,17 +5,19 @@ import { supabase } from '../services/supabase';
 
 interface AuthModalProps {
     onClose: () => void;
-    onLogin: (role: 'user' | 'owner') => void;
+    onAuthStarted: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onAuthStarted }) => {
     const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
     const [role, setRole] = useState<'user' | 'owner'>('user');
     const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const { t } = useTranslations();
     
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
+        setErrorMessage(null);
         try {
             sessionStorage.setItem('pending_role', role);
 
@@ -33,11 +35,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
             if (error) {
                 throw error;
             }
-
-            onLogin(role);
+            onAuthStarted();
         } catch (error) {
             console.error('Google Sign-In Error:', error);
             sessionStorage.removeItem('pending_role');
+            setErrorMessage(
+              error instanceof Error
+                ? error.message
+                : 'Google sign-in failed. Please check your connection and try again.',
+            );
         } finally {
             setIsLoading(false);
         }
@@ -56,6 +62,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
                 <p className="text-white/60 text-sm mb-8">
                     {activeTab === 'signin' ? 'Welcome back to Iraq Compass' : 'Join the Social Business Ecosystem'}
                 </p>
+                {errorMessage && (
+                    <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                        {errorMessage}
+                    </div>
+                )}
 
                 <div className="space-y-6">
                     {activeTab === 'signup' && (

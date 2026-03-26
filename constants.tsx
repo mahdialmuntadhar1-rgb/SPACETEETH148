@@ -1,20 +1,10 @@
 import React from 'react';
-import type { User, Story, Category, Business, Event, Deal, HeroSlide } from './types';
-// FIX: Added 'Briefcase' to the import list from './components/icons' to make it available for use in this file.
+import type { Story, Category, Business, Event, Deal, HeroSlide } from './types';
 import {
   Utensils, Coffee, ShoppingBag, Bed, Film, Music, Palette, Dumbbell, Car,
   Hospital, Landmark, Siren, Accessibility, Baby, Users2, Languages, Briefcase,
   Grid3x3
 } from './components/icons';
-
-// Mock User
-export const mockUser: User = {
-  id: 'u1',
-  name: 'Salar Ali',
-  email: 'salar.ali@example.com',
-  avatar: 'https://i.pravatar.cc/150?u=salarali',
-  role: 'user'
-};
 
 // Hero Slides
 export const heroSlides: HeroSlide[] = [

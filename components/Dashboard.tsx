@@ -159,7 +159,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                         {/* My Activity and Favorites */}
                         <div className="lg:col-span-2 space-y-8">
                              <GlassCard className="p-6">
-                                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3"><Heart className="text-accent" /> {t('dashboard.myFavorites')}</h2>
+                                <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3"><Heart className="text-accent" /> {t('dashboard.myFavorites')}</h2>
+                                <p className="text-xs text-white/50 mb-6">Sample data (favorites backend integration pending).</p>
                                 <div className="space-y-4 max-h-60 overflow-y-auto pr-2 rtl:pr-0 rtl:pl-2">
                                      <div className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                                         <img src="https://picsum.photos/seed/b2/128/128" alt="Saj Al-Reef" className="w-16 h-16 rounded-lg object-cover" />
@@ -185,7 +186,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                             </GlassCard>
 
                              <GlassCard className="p-6">
-                                <h2 className="text-2xl font-bold text-white mb-6">{t('dashboard.recentActivity')}</h2>
+                                <h2 className="text-2xl font-bold text-white mb-2">{t('dashboard.recentActivity')}</h2>
+                                <p className="text-xs text-white/50 mb-6">Sample data (activity feed backend integration pending).</p>
                                 <div className="space-y-4 max-h-60 overflow-y-auto pr-2 rtl:pr-0 rtl:pl-2">
                                     {recentActivity.map((activity, index) => (
                                         <div key={index} className="flex items-center gap-4 p-3 rounded-xl bg-white/5">

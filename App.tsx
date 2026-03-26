@@ -16,7 +16,6 @@ import { Dashboard } from './components/Dashboard';
 import { SubcategoryModal } from './components/SubcategoryModal';
 import { GovernorateFilter } from './components/GovernorateFilter';
 import { SearchPortal } from './components/SearchPortal';
-import { mockUser } from './constants';
 import { api } from './services/api';
 import { supabase } from './services/supabase';
 import type { User, Category, Subcategory, Post } from './types';
@@ -75,6 +74,7 @@ const MainContent: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [posts, setPosts] = useState<Post[]>([]);
   const [isSocialLoading, setIsSocialLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [highContrast, setHighContrast] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('iraq-compass-high-contrast') === 'true';
@@ -85,16 +85,23 @@ const MainContent: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
-    const hydrateSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const applySession = async (session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']) => {
       if (!isMounted) return;
 
       if (session?.user) {
         const pendingRole = sessionStorage.getItem('pending_role') as 'user' | 'owner' | null;
         const user = await api.getOrCreateProfile(session.user, pendingRole || 'user');
         if (!isMounted) return;
-        setCurrentUser(user);
-        setIsLoggedIn(!!user);
+        if (user) {
+          setCurrentUser(user);
+          setIsLoggedIn(true);
+          setAuthError(null);
+        } else {
+          setCurrentUser(null);
+          setIsLoggedIn(false);
+          setAuthError('Unable to complete sign-in. Please try again.');
+          await supabase.auth.signOut();
+        }
         sessionStorage.removeItem('pending_role');
       } else {
         setCurrentUser(null);
@@ -103,23 +110,19 @@ const MainContent: React.FC = () => {
       setIsAuthReady(true);
     };
 
+    const hydrateSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      await applySession(session);
+    };
+
     hydrateSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
-
-      if (session?.user) {
-        const pendingRole = sessionStorage.getItem('pending_role') as 'user' | 'owner' | null;
-        const user = await api.getOrCreateProfile(session.user, pendingRole || 'user');
-        if (!isMounted) return;
-        setCurrentUser(user);
-        setIsLoggedIn(!!user);
+      if (event === 'SIGNED_OUT') {
         sessionStorage.removeItem('pending_role');
-      } else {
-        setCurrentUser(null);
-        setIsLoggedIn(false);
       }
-      setIsAuthReady(true);
+      await applySession(session);
     });
 
     return () => {
@@ -147,11 +150,8 @@ const MainContent: React.FC = () => {
     }
   }, [highContrast]);
 
-  const handleLogin = (role: 'user' | 'owner') => {
-    // Auth is handled in AuthModal via signInWithPopup, 
-    // which triggers onAuthStateChanged above.
-    // We store the role in sessionStorage to be picked up by the listener.
-    sessionStorage.setItem('pending_role', role);
+  const handleAuthStarted = () => {
+    setAuthError(null);
     setShowAuthModal(false);
   };
 
@@ -220,6 +220,13 @@ const MainContent: React.FC = () => {
         onHome={() => navigateTo('home')}
       />
       <main>
+        {authError && (
+          <div className="container mx-auto px-4 pt-4">
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              {authError}
+            </div>
+          </div>
+        )}
         {page === 'home' && (
           <>
             <HeroSection />
@@ -260,7 +267,7 @@ const MainContent: React.FC = () => {
         )}
         {page === 'dashboard' && <Dashboard user={currentUser!} onLogout={handleLogout} />}
       </main>
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onLogin={handleLogin} />}
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onAuthStarted={handleAuthStarted} />}
       <SubcategoryModal 
         category={selectedCategory} 
         onClose={() => setSelectedCategory(null)}

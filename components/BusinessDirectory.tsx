@@ -29,9 +29,9 @@ const BusinessCard: React.FC<BusinessCardProps> = ({ business, viewMode }) => {
         <div className="flex-1">
           <h3 className="text-white font-semibold text-lg mb-1">{displayName}</h3>
           <p className="text-white/60 text-sm mb-2">{t(categories.find(c => c.id === business.category)?.nameKey || business.category)}</p>
-          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1"><Star className="w-4 h-4 text-accent fill-accent" /><span className="text-white">{business.rating}</span></div>
-            <div className="flex items-center gap-1 text-white/60"><MapPin className="w-4 h-4" />{business.distance || '1.2'} km</div>
+            <div className="flex items-center gap-1 text-white/60"><MapPin className="w-4 h-4" />{business.distance ? `${business.distance} km` : (t('common.notAvailable') || 'N/A')}</div>
           </div>
         </div>
         <div className="flex flex-col justify-center gap-2">
@@ -53,7 +53,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({ business, viewMode }) => {
         <p className="text-white/60 text-sm mb-3">{t(categories.find(c => c.id === business.category)?.nameKey || business.category)}</p>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1"><Star className="w-4 h-4 text-accent fill-accent" /><span className="text-white font-medium">{business.rating}</span><span className="text-white/60 text-sm">({displayReviews})</span></div>
-          <div className="flex items-center gap-1 text-white/60 text-sm"><MapPin className="w-4 h-4" />{business.distance || '1.2'} km</div>
+          <div className="flex items-center gap-1 text-white/60 text-sm"><MapPin className="w-4 h-4" />{business.distance ? `${business.distance} km` : (t('common.notAvailable') || 'N/A')}</div>
         </div>
         <button className="w-full mt-4 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-semibold hover:shadow-glow-primary transition-all">{t('directory.viewProfile')}</button>
       </div>
@@ -78,6 +78,7 @@ export const BusinessDirectory: React.FC<BusinessDirectoryProps> = ({ initialFil
   const [businessesData, setBusinessesData] = useState<Business[]>([]);
   const [lastDoc, setLastDoc] = useState<number | undefined>(undefined);
   const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslations();
@@ -99,18 +100,25 @@ export const BusinessDirectory: React.FC<BusinessDirectoryProps> = ({ initialFil
             category: filters.category,
             city: filters.city,
             governorate: filters.governorate,
+            ratingMin: filters.rating,
             lastDoc: isLoadMore ? lastDoc : undefined,
             limit: pageSize
         });
         
         if (isLoadMore) {
-            setBusinessesData(prev => [...prev, ...result.data]);
+            setBusinessesData(prev => {
+                const merged = [...prev, ...result.data];
+                const unique = new Map<string | number, Business>();
+                merged.forEach((item) => unique.set(item.id, item));
+                return Array.from(unique.values());
+            });
         } else {
             setBusinessesData(result.data);
         }
         
         setLastDoc(result.lastDoc);
         setHasMore(result.hasMore);
+        setTotalCount(result.totalCount);
     } catch (err) {
         console.error('Error fetching businesses:', err);
         setError(t('directory.errorLoading') || "Failed to load businesses. Please try again.");
@@ -186,7 +194,7 @@ export const BusinessDirectory: React.FC<BusinessDirectoryProps> = ({ initialFil
           </div>
           <div className="lg:col-span-3">
             <div className="flex items-center justify-between mb-6">
-              <p className="text-white/80">{businessesData.length} {t('directory.businessesShown') || "businesses shown"}</p>
+              <p className="text-white/80">{totalCount} {t('directory.businessesShown') || "businesses shown"}</p>
               <div className="flex items-center gap-2 backdrop-blur-xl bg-white/10 border border-white/20 rounded-xl p-1">
                 <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-primary' : 'hover:bg-white/10'}`}><Grid3x3 className="w-5 h-5 text-white" /></button>
                 <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-primary' : 'hover:bg-white/10'}`}><List className="w-5 h-5 text-white" /></button>

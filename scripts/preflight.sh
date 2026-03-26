@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Running lint..."
-npm run lint
-
-echo "Running build..."
-npm run build
-
 required_vars=(
   VITE_SUPABASE_URL
   VITE_SUPABASE_ANON_KEY
@@ -26,5 +20,11 @@ if [[ "${missing}" -ne 0 ]]; then
   echo "Preflight failed due to missing Supabase/Cloudflare environment variables."
   exit 1
 fi
+
+echo "Running lint..."
+npm run lint
+
+echo "Running build..."
+npm run build
 
 echo "Preflight checks passed for Supabase + Cloudflare architecture."
