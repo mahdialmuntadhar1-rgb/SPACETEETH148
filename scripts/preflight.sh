@@ -2,8 +2,7 @@
 set -euo pipefail
 
 required_vars=(
-  VITE_SUPABASE_URL
-  VITE_SUPABASE_ANON_KEY
+  GEMINI_API_KEY
 )
 
 missing=0
@@ -15,7 +14,7 @@ for var in "${required_vars[@]}"; do
 done
 
 if [[ "${missing}" -ne 0 ]]; then
-  echo "Preflight failed due to missing required Supabase environment variables."
+  echo "Preflight failed due to missing required environment variables."
   exit 1
 fi
 
@@ -25,4 +24,4 @@ npm run lint
 echo "Running build..."
 npm run build
 
-echo "Preflight checks passed for frontend + Supabase deployment."
+echo "Preflight checks passed for frontend deployment (Firebase + Gemini)."
