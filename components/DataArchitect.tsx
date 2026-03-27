@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { GoogleGenAI } from '@google/genai';
 import { Sparkles, CheckCircle, X, ShieldCheck, Briefcase, MapPin, Navigation } from './icons';
 import { GlassCard } from './GlassCard';
 import { api } from '../services/api';
@@ -45,8 +44,6 @@ export const DataArchitect: React.FC = () => {
       const flagged: { name: string; city: string; reason: string }[] = [];
       const postcards: BusinessPostcard[] = [];
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-
       for (const place of places) {
         const name = place.title || place.name;
         const phone = place.phone || place.phoneNumber;
@@ -81,23 +78,13 @@ export const DataArchitect: React.FC = () => {
         const city = selectedGovernorate; // Governorate capital logic simplified for this demo
 
         // STEP 4: POSTCARD GENERATION
-        addLog(`Generating AI tagline for ${name}...`);
+        addLog(`Generating tagline for ${name}...`);
         const topReviews = reviews.slice(0, 3).map((r: any) => r.text).join('\n');
         
-        let tagline = `${name} in ${city}`;
-        try {
-            const aiResponse = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
-                contents: `You are a creative copywriter for a local business discovery app in Iraq.
-                Based on these Google Maps reviews for "${name}":
-                ${topReviews}
-                Write a single punchy tagline (max 15 words) that captures the vibe of this business.
-                Tone: warm, local, confident. No emojis. No generic phrases like "best in town."`
-            });
-            tagline = aiResponse.text.trim().replace(/^"|"$/g, '');
-        } catch (err) {
-            console.error("AI Generation failed", err);
-        }
+        const firstReview = topReviews.split('\n').find(Boolean);
+        const tagline = firstReview
+          ? `${name}: ${firstReview.slice(0, 90)}`
+          : `${name} in ${city}`;
 
         const postcard: BusinessPostcard = {
           title: name,

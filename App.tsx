@@ -16,10 +16,7 @@ import { Dashboard } from './components/Dashboard';
 import { SubcategoryModal } from './components/SubcategoryModal';
 import { GovernorateFilter } from './components/GovernorateFilter';
 import { SearchPortal } from './components/SearchPortal';
-import { mockUser } from './constants';
 import { api } from './services/api';
-import { auth } from './firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User, Category, Subcategory, Post } from './types';
 import { TranslationProvider } from './hooks/useTranslations';
 
@@ -84,22 +81,29 @@ const MainContent: React.FC = () => {
   });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Retrieve the role from sessionStorage if it was set during the AuthModal flow
-        const pendingRole = sessionStorage.getItem('pending_role') as 'user' | 'owner' | null;
-        const user = await api.getOrCreateProfile(firebaseUser, pendingRole || 'user');
-        setCurrentUser(user);
-        setIsLoggedIn(!!user);
-        sessionStorage.removeItem('pending_role');
-      } else {
+    const hydrateUser = async () => {
+      const stored = localStorage.getItem('iraq-compass-user');
+      if (!stored) {
         setCurrentUser(null);
         setIsLoggedIn(false);
+        setIsAuthReady(true);
+        return;
       }
-      setIsAuthReady(true);
-    });
 
-    return () => unsubscribe();
+      try {
+        const parsed = JSON.parse(stored);
+        const user = await api.getOrCreateProfile(parsed, parsed.role || 'user');
+        setCurrentUser(user);
+        setIsLoggedIn(!!user);
+      } catch {
+        setCurrentUser(null);
+        setIsLoggedIn(false);
+      } finally {
+        setIsAuthReady(true);
+      }
+    };
+
+    void hydrateUser();
   }, []);
 
   useEffect(() => {
@@ -121,16 +125,24 @@ const MainContent: React.FC = () => {
     }
   }, [highContrast]);
 
-  const handleLogin = (role: 'user' | 'owner') => {
-    // Auth is handled in AuthModal via signInWithPopup, 
-    // which triggers onAuthStateChanged above.
-    // We store the role in sessionStorage to be picked up by the listener.
-    sessionStorage.setItem('pending_role', role);
+  const handleLogin = async (role: 'user' | 'owner') => {
+    const user = await api.getOrCreateProfile(
+      {
+        id: `local-${role}`,
+        uid: `local-${role}`,
+        email: role === 'owner' ? 'owner@local.app' : 'user@local.app',
+        displayName: role === 'owner' ? 'Business Owner' : 'Guest User',
+      },
+      role,
+    );
+    localStorage.setItem('iraq-compass-user', JSON.stringify(user));
+    setCurrentUser(user);
+    setIsLoggedIn(!!user);
     setShowAuthModal(false);
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
+    localStorage.removeItem('iraq-compass-user');
     setIsLoggedIn(false);
     setCurrentUser(null);
     setPage('home');
