@@ -9,8 +9,8 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signInWithPassword: (email: string, password: string) => Promise<void>;
-  signUpWithPassword: (email: string, password: string, role?: AuthRole) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, role?: AuthRole) => Promise<void>;
   signInWithGoogle: (role?: AuthRole) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -55,11 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
       session,
       loading,
-      async signInWithPassword(email, password) {
+      async signInWithEmail(email, password) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       },
-      async signUpWithPassword(email, password, role = 'user') {
+      async signUpWithEmail(email, password, role = 'user') {
         sessionStorage.setItem('pending_role', role);
         const { error } = await supabase.auth.signUp({
           email,

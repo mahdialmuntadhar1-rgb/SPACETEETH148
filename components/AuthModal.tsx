@@ -16,7 +16,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
     const [password, setPassword] = useState('');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const { t } = useTranslations();
-    const { signInWithGoogle, signInWithPassword, signUpWithPassword } = useAuth();
+    const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
 
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
@@ -42,9 +42,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
         setErrorMessage(null);
         try {
             if (activeTab === 'signin') {
-                await signInWithPassword(email, password);
+                await signInWithEmail(email, password);
             } else {
-                await signUpWithPassword(email, password, role);
+                await signUpWithEmail(email, password, role);
             }
             onLogin();
         } catch (error) {
