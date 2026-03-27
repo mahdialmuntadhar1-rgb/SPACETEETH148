@@ -8,7 +8,7 @@ import { HomePage } from './components/HomePage';
 import { api } from './services/api';
 import type { User, Category, Subcategory, Post } from './types';
 import { TranslationProvider, useTranslations } from './hooks/useTranslations';
-import { AuthProvider, useAuth } from './hooks/useAuth';
+import { useAuth } from './hooks/useAuth';
 import { motion, AnimatePresence } from 'motion/react';
 
 import { translations } from './constants';
@@ -263,11 +263,9 @@ const MainContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <TranslationProvider>
-          <MainContent />
-        </TranslationProvider>
-      </AuthProvider>
+      <TranslationProvider>
+        <MainContent />
+      </TranslationProvider>
     </ErrorBoundary>
   );
 }

@@ -45,3 +45,17 @@ The app now uses Supabase Auth for:
 - Deploy only the frontend build output (`vite build` => `dist/`).
 - Configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the Vercel project environment variables.
 - Enable the desired auth providers (e.g. Google) in the Supabase dashboard.
+
+## Manual post-merge validation checklist
+
+1. Run `npm install`.
+2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local`.
+3. Validate auth:
+   - Sign up with email/password and confirm a profile row is created in `users`.
+   - Sign in with email/password.
+   - Sign in with Google OAuth (with redirect URLs configured in Supabase Auth settings).
+   - Sign out and confirm protected flows/routes are locked again.
+4. Validate data flows:
+   - Fetch businesses.
+   - Create a post.
+   - Confirm normal read/write operations still work with the authenticated user.
