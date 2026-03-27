@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { X, User } from './icons';
+import { X } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
-import { auth } from '../firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { useAuth } from '../hooks/useAuth';
 
 interface AuthModalProps {
     onClose: () => void;
@@ -12,22 +11,48 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
     const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
     const [role, setRole] = useState<'user' | 'owner'>('user');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const { t } = useTranslations();
+    const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+
+    const setPendingRole = () => {
+        sessionStorage.setItem('pending_role', role);
+    };
     
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
+        setErrorMessage(null);
         try {
-            // Store the role in sessionStorage BEFORE triggering the popup
-            // to ensure onAuthStateChanged picks it up correctly.
-            sessionStorage.setItem('pending_role', role);
-            
-            const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
+            setPendingRole();
+            await signInWithGoogle();
             onLogin(role);
         } catch (error) {
             console.error('Google Sign-In Error:', error);
-            // Clear the pending role if sign-in fails
+            setErrorMessage(error instanceof Error ? error.message : t('error.unexpected'));
+            sessionStorage.removeItem('pending_role');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleEmailAuth = async () => {
+        setIsLoading(true);
+        setErrorMessage(null);
+
+        try {
+            setPendingRole();
+            if (activeTab === 'signin') {
+                await signInWithEmail(email, password);
+            } else {
+                await signUpWithEmail(email, password);
+            }
+            onLogin(role);
+        } catch (error) {
+            console.error('Email Auth Error:', error);
+            setErrorMessage(error instanceof Error ? error.message : t('error.unexpected'));
             sessionStorage.removeItem('pending_role');
         } finally {
             setIsLoading(false);
@@ -49,26 +74,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
                 </p>
 
                 <div className="space-y-6">
-                    {activeTab === 'signup' && (
-                        <div className="flex gap-4">
-                            <button
-                                type="button"
-                                onClick={() => setRole('user')}
-                                className={`flex-1 py-3 rounded-xl border transition-all flex flex-col items-center gap-1 ${role === 'user' ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/10 text-white/60'}`}
-                            >
-                                <span className="font-semibold text-sm">{t('auth.roleUser')}</span>
-                                <span className="text-[10px] opacity-60">{t('auth.exploreConnect')}</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setRole('owner')}
-                                className={`flex-1 py-3 rounded-xl border transition-all flex flex-col items-center gap-1 ${role === 'owner' ? 'bg-secondary/20 border-secondary text-secondary' : 'bg-white/5 border-white/10 text-white/60'}`}
-                            >
-                                <span className="font-semibold text-sm">{t('auth.roleOwner')}</span>
-                                <span className="text-[10px] opacity-60">{t('auth.growBusiness')}</span>
-                            </button>
-                        </div>
-                    )}
+                    <div className="flex gap-4">
+                        <button
+                            type="button"
+                            onClick={() => setRole('user')}
+                            className={`flex-1 py-3 rounded-xl border transition-all flex flex-col items-center gap-1 ${role === 'user' ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/10 text-white/60'}`}
+                        >
+                            <span className="font-semibold text-sm">{t('auth.roleUser')}</span>
+                            <span className="text-[10px] opacity-60">{t('auth.exploreConnect')}</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setRole('owner')}
+                            className={`flex-1 py-3 rounded-xl border transition-all flex flex-col items-center gap-1 ${role === 'owner' ? 'bg-secondary/20 border-secondary text-secondary' : 'bg-white/5 border-white/10 text-white/60'}`}
+                        >
+                            <span className="font-semibold text-sm">{t('auth.roleOwner')}</span>
+                            <span className="text-[10px] opacity-60">{t('auth.growBusiness')}</span>
+                        </button>
+                    </div>
 
                     <button 
                         onClick={handleGoogleSignIn}
@@ -79,7 +102,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
                             <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                         ) : (
                             <>
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
                                 <span>{t('auth.continueGoogle')}</span>
                             </>
                         )}
@@ -94,13 +116,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
                         </div>
                     </div>
 
-                    <div className="space-y-4 opacity-50 pointer-events-none">
-                        <input type="email" placeholder={t('auth.email')} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none" />
-                        <input type="password" placeholder={t('auth.password')} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none" />
-                        <button className="w-full py-3 rounded-xl bg-white/10 text-white/40 font-semibold">
+                    <div className="space-y-4">
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          placeholder={t('auth.email')}
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none"
+                        />
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          placeholder={t('auth.password')}
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleEmailAuth}
+                          disabled={isLoading || !email || !password}
+                          className="w-full py-3 rounded-xl bg-white/10 text-white font-semibold disabled:opacity-50"
+                        >
                             {activeTab === 'signin' ? t('auth.signIn') : t('auth.createAccount')}
                         </button>
                     </div>
+
+                    {errorMessage && (
+                      <p className="text-red-400 text-xs">{errorMessage}</p>
+                    )}
 
                     <div className="text-center">
                         <button 
