@@ -19,6 +19,18 @@ View your app in AI Studio: https://ai.studio/apps/accadf3d-012c-4037-9b18-c758f
 3. Run the app:
    `npm run dev`
 
+## Deploy (Cloudflare Pages only)
+
+This repository is configured for **Cloudflare Pages** deployment only.
+
+- Build command: `npm run build`
+- Build output directory: `dist`
+
+### Important
+
+- Do **not** use Cloudflare Workers deployment for this repo.
+- No `wrangler` deploy scripts or Workers config are required.
+- `.wrangler/` artifacts are intentionally ignored and should not be committed.
 ## Cloudflare Pages deployment
 
 Configure Cloudflare Pages with:
