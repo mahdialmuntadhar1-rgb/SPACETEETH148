@@ -4,7 +4,6 @@ import {
     query, 
     where, 
     limit, 
-    startAfter, 
     orderBy, 
     addDoc, 
     serverTimestamp, 
@@ -13,11 +12,10 @@ import {
     setDoc,
     getDocFromServer,
     Timestamp,
-    onSnapshot,
-    QueryDocumentSnapshot,
-    DocumentData
+    onSnapshot
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { hasSupabaseEnv, querySupabase } from './supabase';
 import type { Business, Post, User, BusinessPostcard } from '../types';
 
 export enum OperationType {
@@ -83,21 +81,106 @@ async function testConnection() {
 }
 testConnection();
 
+
+type BusinessDataSource = 'live' | 'fallback';
+let businessDataSource: BusinessDataSource = hasSupabaseEnv ? 'live' : 'fallback';
+
+function mapSupabaseBusiness(row: Record<string, any>): Business {
+  return {
+    id: row.id,
+    name: row.name || row.title || 'Unnamed business',
+    nameAr: row.name_ar || row.nameAr,
+    nameKu: row.name_ku || row.nameKu,
+    coverImage: row.cover_image || row.coverImage,
+    imageUrl: row.image_url || row.imageUrl || row.hero_image,
+    category: row.category || row.category_tag || 'other',
+    rating: Number(row.rating ?? 0),
+    reviewCount: Number(row.review_count ?? row.reviewCount ?? 0),
+    reviews: Number(row.review_count ?? row.reviewCount ?? 0),
+    distance: row.distance,
+    city: row.city,
+    governorate: row.governorate,
+    isFeatured: Boolean(row.is_featured ?? row.isFeatured ?? false),
+    isPremium: Boolean(row.is_premium ?? row.isPremium ?? false),
+    isVerified: Boolean(row.is_verified ?? row.isVerified ?? false),
+    status: row.status,
+    phone: row.phone,
+    address: row.address,
+    website: row.website,
+    description: row.description,
+  };
+}
+
 export const api = {
-    async getBusinesses(params: { category?: string; city?: string; governorate?: string; lastDoc?: QueryDocumentSnapshot<DocumentData>; limit?: number; featuredOnly?: boolean } = {}) {
+    async getBusinesses(params: { category?: string; city?: string; governorate?: string; offset?: number; limit?: number; featuredOnly?: boolean } = {}) {
         const path = 'businesses';
+        const pageSize = params.limit || 20;
+        const offset = params.offset || 0;
+
+        if (hasSupabaseEnv) {
+            const filters: string[] = [];
+
+            if (params.category && params.category !== 'all') {
+                filters.push(`or=category.eq.${params.category},category_tag.eq.${params.category}`);
+            }
+
+            if (params.governorate && params.governorate !== 'all') {
+                filters.push(`governorate=eq.${params.governorate}`);
+            }
+
+            if (params.featuredOnly) {
+                filters.push('is_featured=eq.true');
+            }
+
+            if (params.city?.trim()) {
+                filters.push(`city=ilike.*${encodeURIComponent(params.city.trim())}*`);
+            }
+
+            const { data, error, count } = await querySupabase(path, {
+                select: 'id,name,name_ar,name_ku,cover_image,image_url,hero_image,category,category_tag,rating,review_count,distance,city,governorate,is_featured,is_premium,is_verified,status,phone,address,website,description',
+                orderBy: 'name',
+                ascending: true,
+                offset,
+                limit: pageSize,
+                filters,
+            });
+
+            if (!error) {
+                businessDataSource = 'live';
+                const mapped = (data || []).map((row) => mapSupabaseBusiness(row as Record<string, any>));
+                const nextOffset = offset + mapped.length;
+                return {
+                    data: mapped,
+                    hasMore: typeof count === 'number' ? nextOffset < count : mapped.length === pageSize,
+                    nextOffset,
+                    totalCount: count ?? undefined,
+                    source: businessDataSource,
+                };
+            }
+
+            // Supabase is configured but request failed: surface the error for visibility.
+            throw new Error(`Supabase query failed: ${error}`);
+        }
+
+        // Fallback path: Firestore for environments without Supabase variables.
+        businessDataSource = 'fallback';
+
         try {
-            // Firestore requires the first orderBy to match the inequality filter field.
-            // If we search by city prefix, we must order by city first.
-            let q;
+            let q: any;
             const searchStr = params.city?.trim();
-            
+
             if (searchStr) {
-                q = query(collection(db, path), where('city', '>=', searchStr), where('city', '<=', searchStr + '\uf8ff'), orderBy('city'), orderBy('name'));
+                q = query(
+                    collection(db, path),
+                    where('city', '>=', searchStr),
+                    where('city', '<=', searchStr + '\uf8ff'),
+                    orderBy('city'),
+                    orderBy('name')
+                );
             } else {
                 q = query(collection(db, path), orderBy('name'));
             }
-            
+
             if (params.category && params.category !== 'all') {
                 q = query(q, where('category', '==', params.category));
             }
@@ -109,35 +192,39 @@ export const api = {
             if (params.featuredOnly) {
                 q = query(q, where('isFeatured', '==', true));
             }
-            
-            if (params.lastDoc) {
-                q = query(q, startAfter(params.lastDoc));
-            }
 
-            const pageSize = params.limit || 20;
-            q = query(q, limit(pageSize));
-            
+            q = query(q, limit(offset + pageSize));
+
             const snapshot = await getDocs(q);
-            const data = snapshot.docs.map(doc => {
-                const d = doc.data() as any;
-                return { 
-                    id: doc.id, 
+            const allData = snapshot.docs.map((docItem) => {
+                const d = docItem.data() as any;
+                return {
+                    id: docItem.id,
                     ...d,
-                    // Normalize verified status
-                    isVerified: d.isVerified ?? d.verified ?? false
+                    isVerified: d.isVerified ?? d.verified ?? false,
                 } as Business;
             });
-            const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+
+            const paged = allData.slice(offset, offset + pageSize);
+            const nextOffset = offset + paged.length;
 
             return {
-                data,
-                lastDoc: lastVisible,
-                hasMore: data.length === pageSize
+                data: paged,
+                hasMore: allData.length > nextOffset,
+                nextOffset,
+                source: businessDataSource,
             };
         } catch (error) {
             handleFirestoreError(error, OperationType.GET, path);
-            return { data: [], hasMore: false };
+            return { data: [], hasMore: false, nextOffset: offset, source: businessDataSource };
         }
+    },
+
+    getBusinessDataSourceStatus() {
+        return {
+            envOk: hasSupabaseEnv,
+            dataSource: businessDataSource,
+        } as const;
     },
 
     /**
