@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { X, User } from './icons';
+import { X } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
-import { auth } from '../firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 interface AuthModalProps {
     onClose: () => void;
@@ -18,17 +16,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
         try {
-            // Store the role in sessionStorage BEFORE triggering the popup
-            // to ensure onAuthStateChanged picks it up correctly.
-            sessionStorage.setItem('pending_role', role);
-            
-            const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
+            await new Promise((resolve) => setTimeout(resolve, 250));
             onLogin(role);
         } catch (error) {
-            console.error('Google Sign-In Error:', error);
-            // Clear the pending role if sign-in fails
-            sessionStorage.removeItem('pending_role');
+            console.error('Sign-In Error:', error);
         } finally {
             setIsLoading(false);
         }
@@ -79,7 +70,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
                             <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                         ) : (
                             <>
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_64dp.png" alt="Google" className="w-5 h-5" />
                                 <span>Continue with Google</span>
                             </>
                         )}
