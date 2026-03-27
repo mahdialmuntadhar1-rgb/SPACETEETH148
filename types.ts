@@ -38,6 +38,7 @@ export interface Business {
   nameAr?: string;
   nameKu?: string;
   imageUrl?: string;
+  image?: string;
   coverImage?: string;
   isPremium?: boolean;
   isFeatured?: boolean;
@@ -48,6 +49,7 @@ export interface Business {
   status?: string;
   isVerified?: boolean;
   reviewCount?: number;
+  reviews?: number;
   governorate?: string;
   city?: string;
   address?: string;

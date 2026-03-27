@@ -6,8 +6,7 @@ import { Dashboard } from './components/Dashboard';
 import { SubcategoryModal } from './components/SubcategoryModal';
 import { HomePage } from './components/HomePage';
 import { api } from './services/api';
-import { auth } from './firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { useSupabaseAuth } from './hooks/useSupabaseAuth';
 import type { User, Category, Subcategory, Post } from './types';
 import { TranslationProvider, useTranslations } from './hooks/useTranslations';
 import { motion, AnimatePresence } from 'motion/react';
@@ -74,7 +73,6 @@ const MainContent: React.FC = () => {
   const { t } = useTranslations();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [page, setPage] = useState<'home' | 'dashboard' | 'listing'>('home');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -84,6 +82,7 @@ const MainContent: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [posts, setPosts] = useState<Post[]>([]);
   const [isSocialLoading, setIsSocialLoading] = useState(true);
+  const { authUser, isAuthReady, signOut } = useSupabaseAuth();
   const [highContrast, setHighContrast] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('iraq-compass-high-contrast') === 'true';
@@ -92,11 +91,10 @@ const MainContent: React.FC = () => {
   });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Retrieve the role from sessionStorage if it was set during the AuthModal flow
+    const syncUserProfile = async () => {
+      if (authUser) {
         const pendingRole = sessionStorage.getItem('pending_role') as 'user' | 'owner' | null;
-        const user = await api.getOrCreateProfile(firebaseUser, pendingRole || 'user');
+        const user = await api.getOrCreateProfile(authUser, pendingRole || 'user');
         setCurrentUser(user);
         setIsLoggedIn(!!user);
         sessionStorage.removeItem('pending_role');
@@ -104,11 +102,10 @@ const MainContent: React.FC = () => {
         setCurrentUser(null);
         setIsLoggedIn(false);
       }
-      setIsAuthReady(true);
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
+    syncUserProfile();
+  }, [authUser]);
 
   useEffect(() => {
     setIsSocialLoading(true);
@@ -138,7 +135,7 @@ const MainContent: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
+    await signOut();
     setIsLoggedIn(false);
     setCurrentUser(null);
     setPage('home');
