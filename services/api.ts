@@ -1,6 +1,7 @@
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import type { Business, Post, User, BusinessPostcard } from '../types';
+import type { Business, Post, User, BusinessPostcard, Deal, Story } from '../types';
+import { mockData, normalizeGov } from './mockData';
 
 export enum OperationType {
   CREATE = 'create',
@@ -60,8 +61,9 @@ export const api = {
         query = query.eq('category', params.category);
       }
 
-      if (params.governorate && params.governorate !== 'all') {
-        query = query.eq('governorate', params.governorate);
+      const normalizedGov = normalizeGov(params.governorate);
+      if (normalizedGov !== 'all') {
+        query = query.ilike('governorate', normalizedGov.replace('_', ' '));
       }
 
       if (params.featuredOnly) {
@@ -76,13 +78,24 @@ export const api = {
       const { data, error, count } = await query;
       if (error) throw error;
 
-      const mapped = (data || []).map((row: any) => ({
+      let mapped = (data || []).map((row: any) => ({
         ...row,
         isVerified: row.isVerified ?? false,
       })) as Business[];
 
+      if (mapped.length === 0) {
+        mapped = mockData.getBusinesses(normalizedGov);
+        if (params.category && params.category !== 'all') {
+          mapped = mapped.filter((item) => item.category === params.category);
+        }
+        const searchStr = params.city?.trim().toLowerCase();
+        if (searchStr) {
+          mapped = mapped.filter((item) => item.city?.toLowerCase().startsWith(searchStr));
+        }
+      }
+
       const nextOffset = mapped.length === pageSize ? offset + mapped.length : undefined;
-      const hasMore = typeof count === 'number' ? offset + mapped.length < count : mapped.length === pageSize;
+      const hasMore = typeof count === 'number' ? offset + mapped.length < count : false;
 
       return {
         data: mapped,
@@ -90,12 +103,17 @@ export const api = {
         hasMore,
       };
     } catch (error) {
-      handleSupabaseError(error, OperationType.GET, path);
-      return { data: [], hasMore: false, lastDoc: undefined };
+      console.warn('Falling back to mock businesses after Supabase error.', error);
+      const normalizedGov = normalizeGov(params.governorate);
+      let fallback = mockData.getBusinesses(normalizedGov);
+      if (params.category && params.category !== 'all') {
+        fallback = fallback.filter((item) => item.category === params.category);
+      }
+      return { data: fallback, hasMore: false, lastDoc: undefined };
     }
   },
 
-  subscribeToPosts(callback: (posts: Post[]) => void) {
+  subscribeToPosts(callback: (posts: Post[]) => void, governorate?: string) {
     const path = 'posts';
 
     const fetchPosts = async () => {
@@ -108,16 +126,25 @@ export const api = {
 
         if (error) throw error;
 
-        const posts = (data || []).map((row: any) => ({
+        const normalizedGov = normalizeGov(governorate);
+        let posts = (data || []).map((row: any) => ({
           ...row,
           createdAt: toDate(row.createdAt),
           isVerified: row.isVerified ?? false,
           likes: row.likes ?? 0,
         })) as Post[];
 
+        if (normalizedGov !== 'all') {
+          posts = posts.filter((post) => normalizeGov(post.governorate) === normalizedGov);
+        }
+        if (posts.length === 0) {
+          posts = mockData.getPosts(normalizedGov);
+        }
+
         callback(posts);
       } catch (error) {
-        handleSupabaseError(error, OperationType.GET, path);
+        console.warn('Falling back to mock posts after Supabase error.', error);
+        callback(mockData.getPosts(governorate));
       }
     };
 
@@ -135,7 +162,7 @@ export const api = {
     };
   },
 
-  async getDeals() {
+  async getDeals(governorate?: string) {
     const path = 'deals';
 
     try {
@@ -146,14 +173,19 @@ export const api = {
         .limit(10);
 
       if (error) throw error;
-      return data || [];
+      const normalizedGov = normalizeGov(governorate);
+      const rows = (data || []) as Deal[];
+      const filtered = normalizedGov === 'all'
+        ? rows
+        : rows.filter((deal: any) => normalizeGov(deal.governorate) === normalizedGov);
+      return filtered.length > 0 ? filtered : mockData.getDeals(normalizedGov);
     } catch (error) {
-      handleSupabaseError(error, OperationType.GET, path);
-      return [];
+      console.warn('Falling back to mock deals after Supabase error.', error);
+      return mockData.getDeals(governorate);
     }
   },
 
-  async getStories() {
+  async getStories(governorate?: string) {
     const path = 'stories';
 
     try {
@@ -164,10 +196,15 @@ export const api = {
         .limit(20);
 
       if (error) throw error;
-      return data || [];
+      const normalizedGov = normalizeGov(governorate);
+      const rows = (data || []) as Story[];
+      const filtered = normalizedGov === 'all'
+        ? rows
+        : rows.filter((story) => normalizeGov(story.governorate) === normalizedGov);
+      return filtered.length > 0 ? filtered : mockData.getStories(normalizedGov);
     } catch (error) {
-      handleSupabaseError(error, OperationType.GET, path);
-      return [];
+      console.warn('Falling back to mock stories after Supabase error.', error);
+      return mockData.getStories(governorate);
     }
   },
 
@@ -188,13 +225,14 @@ export const api = {
       const { data, error } = await query;
       if (error) throw error;
 
-      return (data || []).map((row: any) => ({
+      const mapped = (data || []).map((row: any) => ({
         ...row,
         date: toDate(row.date),
       }));
+      return mapped.length > 0 ? mapped : mockData.getEvents(params.governorate);
     } catch (error) {
-      handleSupabaseError(error, OperationType.GET, path);
-      return [];
+      console.warn('Falling back to mock events after Supabase error.', error);
+      return mockData.getEvents(params.governorate);
     }
   },
 
@@ -312,21 +350,23 @@ export const api = {
     try {
       let query = supabase.from(path).select('*').order('updatedAt', { ascending: false });
 
-      if (governorate && governorate !== 'all') {
-        query = query.eq('governorate', governorate);
+      const normalizedGov = normalizeGov(governorate);
+      if (normalizedGov !== 'all') {
+        query = query.ilike('governorate', normalizedGov.replace('_', ' '));
       }
 
       const { data, error } = await query;
       if (error) throw error;
 
-      return (data || []).map((row: any) => ({
+      const mapped = (data || []).map((row: any) => ({
         ...row,
         verified: row.verified ?? false,
         updatedAt: row.updatedAt ? toDate(row.updatedAt) : undefined,
       })) as BusinessPostcard[];
+      return mapped.length > 0 ? mapped : mockData.getPostcards(governorate);
     } catch (error) {
-      handleSupabaseError(error, OperationType.GET, path);
-      return [];
+      console.warn('Falling back to mock postcards after Supabase error.', error);
+      return mockData.getPostcards(governorate);
     }
   },
 

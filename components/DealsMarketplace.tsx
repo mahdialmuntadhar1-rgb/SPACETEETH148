@@ -4,16 +4,21 @@ import type { Deal } from '../types';
 import { Clock, Tag } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 
-export const DealsMarketplace: React.FC = () => {
+interface DealsMarketplaceProps {
+  selectedGovernorate: string;
+}
+
+export const DealsMarketplace: React.FC<DealsMarketplaceProps> = ({ selectedGovernorate }) => {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [claimMessage, setClaimMessage] = useState<string | null>(null);
   const { t } = useTranslations();
 
   useEffect(() => {
     const fetchDeals = async () => {
       setIsLoading(true);
       try {
-        const data = await api.getDeals();
+        const data = await api.getDeals(selectedGovernorate);
         setDeals(data);
       } catch (error) {
         console.error('Error fetching deals:', error);
@@ -22,7 +27,7 @@ export const DealsMarketplace: React.FC = () => {
       }
     };
     fetchDeals();
-  }, []);
+  }, [selectedGovernorate]);
 
   if (isLoading) {
     return (
@@ -71,13 +76,17 @@ export const DealsMarketplace: React.FC = () => {
                   <div className="h-full bg-gradient-to-r from-accent to-primary transition-all duration-500" style={{ width: `${(deal.claimed / deal.total) * 100}%` }} />
                 </div>
               </div>
-              <button className="w-full py-3 rounded-xl bg-gradient-to-r from-accent to-primary text-white font-semibold hover:shadow-glow-accent transition-all duration-200 flex items-center justify-center gap-2">
+              <button onClick={() => {
+                setClaimMessage(`${deal.title}: ${t('deals.claimNow')}`);
+                setTimeout(() => setClaimMessage(null), 2500);
+              }} className="w-full py-3 rounded-xl bg-gradient-to-r from-accent to-primary text-white font-semibold hover:shadow-glow-accent transition-all duration-200 flex items-center justify-center gap-2">
                 <Tag className="w-4 h-4" />
                 {t('deals.claimNow')}
               </button>
             </div>
           )))}
         </div>
+        {claimMessage && <div className="mt-6 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-primary text-sm text-center">{claimMessage}</div>}
       </div>
     </section>
   );

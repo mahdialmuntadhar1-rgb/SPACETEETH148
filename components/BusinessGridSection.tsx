@@ -3,17 +3,22 @@ import { SocialFeed } from './SocialFeed';
 import { useTranslations } from '../hooks/useTranslations';
 import type { Post } from '../types';
 import { motion } from 'motion/react';
+import type { User } from '../types';
 
 interface BusinessGridSectionProps {
     posts: Post[];
     isLoading: boolean;
     isLoggedIn: boolean;
+    currentUser: User | null;
+    onRequestAuth: (preferredRole?: 'user' | 'owner') => void;
 }
 
 export const BusinessGridSection: React.FC<BusinessGridSectionProps> = ({ 
     posts, 
     isLoading, 
-    isLoggedIn 
+    isLoggedIn,
+    currentUser,
+    onRequestAuth,
 }) => {
     const { t } = useTranslations();
 
@@ -40,6 +45,8 @@ export const BusinessGridSection: React.FC<BusinessGridSectionProps> = ({
                     posts={posts} 
                     isLoading={isLoading} 
                     isLoggedIn={isLoggedIn} 
+                    currentUser={currentUser}
+                    onRequestAuth={onRequestAuth}
                 />
             </motion.div>
         </section>

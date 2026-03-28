@@ -5,11 +5,16 @@ import { Sparkles, MapPin, Clock, Users, Calendar } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 import { GlassCard } from './GlassCard';
 
-export const PersonalizedEvents: React.FC = () => {
+interface PersonalizedEventsProps {
+  selectedGovernorate: string;
+}
+
+export const PersonalizedEvents: React.FC<PersonalizedEventsProps> = ({ selectedGovernorate }) => {
   const [activeTab, setActiveTab] = useState('forYou');
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { t } = useTranslations();
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -22,7 +27,7 @@ export const PersonalizedEvents: React.FC = () => {
           'nearYou': 'food',
           'friendsGoing': 'business'
         };
-        const data = await api.getEvents({ category: categoryMap[activeTab] });
+        const data = await api.getEvents({ category: categoryMap[activeTab], governorate: selectedGovernorate });
         setEvents(data);
       } catch (error) {
         console.error('Error fetching events:', error);
@@ -31,7 +36,7 @@ export const PersonalizedEvents: React.FC = () => {
       }
     };
     fetchEvents();
-  }, [activeTab]);
+  }, [activeTab, selectedGovernorate]);
 
   return (
     <section className="py-16">
@@ -94,7 +99,7 @@ export const PersonalizedEvents: React.FC = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <div><span className="text-secondary font-bold text-xl">{event.price === 0 ? t('events.free') : `${event.price.toLocaleString()} IQD`}</span></div>
-                      <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-medium text-sm hover:shadow-glow-primary transition-all duration-200">{t('events.viewDetails')}</button>
+                      <button onClick={() => setSelectedEvent(event)} className="px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-medium text-sm hover:shadow-glow-primary transition-all duration-200">{t('events.viewDetails')}</button>
                     </div>
                   </div>
                 </GlassCard>
@@ -103,6 +108,16 @@ export const PersonalizedEvents: React.FC = () => {
           </div>
         )}
       </div>
+      {selectedEvent && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setSelectedEvent(null)}>
+          <div className="max-w-lg w-full rounded-2xl border border-white/20 bg-dark-bg/95 p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold text-white mb-2">{selectedEvent.title}</h3>
+            <p className="text-white/70 mb-4">{selectedEvent.venue}</p>
+            <p className="text-white/50 text-sm mb-6">{selectedEvent.date.toLocaleString()}</p>
+            <button onClick={() => setSelectedEvent(null)} className="px-5 py-2 rounded-xl bg-primary text-white font-semibold">{t('events.viewDetails')}</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

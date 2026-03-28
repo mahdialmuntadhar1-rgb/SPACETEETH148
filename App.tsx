@@ -138,9 +138,9 @@ const MainContent: React.FC = () => {
     const unsubscribe = api.subscribeToPosts((newPosts) => {
       setPosts(newPosts);
       setIsSocialLoading(false);
-    });
+    }, selectedGovernorate);
     return () => unsubscribe();
-  }, []);
+  }, [selectedGovernorate]);
 
   useEffect(() => {
     if (highContrast) {
@@ -157,6 +157,11 @@ const MainContent: React.FC = () => {
     // We store the role in sessionStorage to be picked up by the auth listener.
     sessionStorage.setItem('pending_role', role);
     setShowAuthModal(false);
+  };
+
+  const openAuthWithRole = (role: 'user' | 'owner' = 'user') => {
+    sessionStorage.setItem('pending_role', role);
+    setShowAuthModal(true);
   };
 
   const handleLogout = async () => {
@@ -245,6 +250,8 @@ const MainContent: React.FC = () => {
                 onGovernorateChange={handleGovernorateChange}
                 highContrast={highContrast}
                 setHighContrast={setHighContrast}
+                currentUser={currentUser}
+                onRequestAuth={openAuthWithRole}
               />
             </motion.div>
           )}
@@ -275,7 +282,13 @@ const MainContent: React.FC = () => {
           )}
         </AnimatePresence>
       </main>
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onLogin={handleLogin} />}
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onLogin={handleLogin}
+          defaultRole={(sessionStorage.getItem('pending_role') as 'user' | 'owner' | null) || 'user'}
+        />
+      )}
       <SubcategoryModal 
         category={selectedCategory} 
         onClose={() => setSelectedCategory(null)}

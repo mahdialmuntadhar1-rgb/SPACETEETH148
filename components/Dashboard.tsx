@@ -131,6 +131,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                             />
                         </div>
                     )}
+                    {user.role === 'user' && (
+                        <div className="max-w-2xl mx-auto mb-12 rounded-2xl border border-secondary/40 bg-secondary/10 px-6 py-5 text-start">
+                            <h2 className="text-xl font-bold text-white mb-2">{t('dashboard.createPost') || 'Create a Post'}</h2>
+                            <p className="text-white/70">{t('social.ownerOnlyPosting') || 'Only business owners can publish posts. Sign up as an owner to start posting.'}</p>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-start rtl:text-right">
                         {/* Profile Settings */}

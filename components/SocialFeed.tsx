@@ -3,7 +3,7 @@ import { Heart, MessageCircle, Share2, MoreHorizontal, CheckCircle } from './ico
 import { GlassCard } from './GlassCard';
 import { useTranslations } from '../hooks/useTranslations';
 import { motion, AnimatePresence } from 'motion/react';
-import type { Post } from '../types';
+import type { Post, User } from '../types';
 
 interface SocialFeedProps {
     posts: Post[];
@@ -12,11 +12,14 @@ interface SocialFeedProps {
     onLike?: (postId: string) => void;
     onComment?: (postId: string) => void;
     onShare?: (postId: string) => void;
+    currentUser?: User | null;
+    onRequestAuth?: (preferredRole?: 'user' | 'owner') => void;
 }
 
-export const SocialFeed: React.FC<SocialFeedProps> = ({ posts, isLoading, isLoggedIn, onLike, onComment, onShare }) => {
+export const SocialFeed: React.FC<SocialFeedProps> = ({ posts, isLoading, isLoggedIn, onLike, onComment, onShare, currentUser, onRequestAuth }) => {
     const { t, lang } = useTranslations();
     const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+    const [roleMessage, setRoleMessage] = useState<string | null>(null);
 
     const handleLike = (postId: string) => {
         const newLikedPosts = new Set(likedPosts);
@@ -52,6 +55,23 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ posts, isLoading, isLogg
 
     return (
         <div className="space-y-6 max-w-2xl mx-auto">
+            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <div className="text-sm">
+                    <p className="text-white/70">{t('social.currentRole') || 'Current role'}: <span className="text-primary font-semibold">{currentUser?.role || t('auth.roleUser')}</span></p>
+                </div>
+                <button
+                    onClick={() => {
+                        if (!isLoggedIn) return onRequestAuth?.('owner');
+                        if (currentUser?.role === 'owner' || currentUser?.role === 'admin') return;
+                        setRoleMessage(t('social.ownerOnlyPosting') || 'Posting is available for business owners only.');
+                        setTimeout(() => setRoleMessage(null), 3000);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-primary/20 border border-primary/40 text-primary text-sm font-semibold"
+                >
+                    {t('social.createPostCta') || 'Create post'}
+                </button>
+            </div>
+            {roleMessage && <div className="rounded-xl bg-accent/15 border border-accent/40 px-4 py-3 text-accent text-sm">{roleMessage}</div>}
             <AnimatePresence mode="popLayout">
                 {posts.length === 0 ? (
                     <motion.div 
@@ -164,4 +184,3 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ posts, isLoading, isLogg
         </div>
     );
 };
-

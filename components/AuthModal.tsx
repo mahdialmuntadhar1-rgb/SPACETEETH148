@@ -6,11 +6,12 @@ import { supabase } from '../services/supabase';
 interface AuthModalProps {
     onClose: () => void;
     onLogin: (role: 'user' | 'owner') => void;
+    defaultRole?: 'user' | 'owner';
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin, defaultRole = 'user' }) => {
     const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
-    const [role, setRole] = useState<'user' | 'owner'>('user');
+    const [role, setRole] = useState<'user' | 'owner'>(defaultRole);
     const [isLoading, setIsLoading] = useState(false);
     const { t } = useTranslations();
     
@@ -22,14 +23,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.href,
+                    redirectTo: `${window.location.origin}${window.location.pathname}`,
+                    queryParams: { prompt: 'select_account' },
                 },
             });
 
             if (error) {
                 throw error;
             }
-
             onLogin(role);
         } catch (error) {
             console.error('Google Sign-In Error:', error);
@@ -99,10 +100,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLogin }) => {
                         </div>
                     </div>
 
-                    <div className="space-y-4 opacity-50 pointer-events-none">
+                    <div className="space-y-4 opacity-60">
+                        <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs text-white/80">
+                            {t('auth.emailComingSoon') || 'Email sign-in coming soon'}
+                        </div>
                         <input type="email" placeholder={t('auth.email')} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none" />
                         <input type="password" placeholder={t('auth.password')} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none" />
-                        <button className="w-full py-3 rounded-xl bg-white/10 text-white/40 font-semibold">
+                        <button disabled className="w-full py-3 rounded-xl bg-white/10 text-white/40 font-semibold cursor-not-allowed">
                             {activeTab === 'signin' ? t('auth.signIn') : t('auth.createAccount')}
                         </button>
                     </div>

@@ -5,7 +5,11 @@ import { Briefcase, Users, ShieldCheck, Plus } from './icons';
 import { StoryViewer } from './StoryViewer';
 import { useTranslations } from '../hooks/useTranslations';
 
-export const CommunityStories: React.FC = () => {
+interface CommunityStoriesProps {
+  selectedGovernorate: string;
+}
+
+export const CommunityStories: React.FC<CommunityStoriesProps> = ({ selectedGovernorate }) => {
   const [stories, setStories] = useState<Story[]>([]);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -15,7 +19,7 @@ export const CommunityStories: React.FC = () => {
     const fetchStories = async () => {
       setIsLoading(true);
       try {
-        const data = await api.getStories();
+        const data = await api.getStories(selectedGovernorate);
         setStories(data);
       } catch (error) {
         console.error('Error fetching stories:', error);
@@ -24,7 +28,7 @@ export const CommunityStories: React.FC = () => {
       }
     };
     fetchStories();
-  }, []);
+  }, [selectedGovernorate]);
 
   if (isLoading) {
     return (

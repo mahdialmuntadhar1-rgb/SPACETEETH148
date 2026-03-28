@@ -1156,7 +1156,11 @@ export const translations = {
     },
     actions: {
         book: "Book Now",
-        details: "View Details"
+        details: "View Details",
+        exploreCity: "Explore my city",
+        viewBusinesses: "View businesses",
+        seeTrending: "See what's trending",
+        joinOwner: "Join as business owner"
     },
     events: {
         personalizedTitle: "Events, Personalized For You",
@@ -1302,6 +1306,7 @@ export const translations = {
         growBusiness: "Grow Your Business",
         continueGoogle: "Continue with Google",
         orEmail: "Or continue with email",
+        emailComingSoon: "Email sign-in is coming soon",
         noAccount: "Don't have an account? Sign up",
         haveAccount: "Already have an account? Sign in",
     },
@@ -1316,6 +1321,9 @@ export const translations = {
         postPlaceholder: "What's new with your business?",
         addPhoto: "Add Photo",
         post: "Post",
+        createPostCta: "Create post",
+        currentRole: "Current role",
+        ownerOnlyPosting: "Only business owners can publish posts. Sign up as an owner to start posting.",
     },
     dashboard: {
         welcome: "Welcome",
@@ -1574,7 +1582,11 @@ export const translations = {
     },
     actions: {
         book: "احجز الآن",
-        details: "عرض التفاصيل"
+        details: "عرض التفاصيل",
+        exploreCity: "استكشف مدينتي",
+        viewBusinesses: "عرض الأعمال",
+        seeTrending: "شاهد الأكثر رواجاً",
+        joinOwner: "انضم كصاحب عمل"
     },
     events: {
         personalizedTitle: "فعاليات مخصصة لك",
@@ -1720,6 +1732,7 @@ export const translations = {
         growBusiness: "نمِ عملك",
         continueGoogle: "المتابعة باستخدام Google",
         orEmail: "أو المتابعة عبر البريد الإلكتروني",
+        emailComingSoon: "تسجيل الدخول بالبريد الإلكتروني قريباً",
         noAccount: "ليس لديك حساب؟ سجل الآن",
         haveAccount: "لديك حساب بالفعل؟ سجل دخولك",
     },
@@ -1734,6 +1747,9 @@ export const translations = {
         postPlaceholder: "ما الجديد في عملك؟",
         addPhoto: "إضافة صورة",
         post: "نشر",
+        createPostCta: "إنشاء منشور",
+        currentRole: "الدور الحالي",
+        ownerOnlyPosting: "نشر المحتوى متاح فقط لأصحاب الأعمال. سجّل كصاحب عمل للبدء.",
     },
     dashboard: {
         welcome: "أهلاً بك",
@@ -1993,7 +2009,11 @@ export const translations = {
     },
     actions: {
         book: "ئێستا حیجز بکە",
-        details: "پیشاندانی وردەکاری"
+        details: "پیشاندانی وردەکاری",
+        exploreCity: "شارەکەم بگەڕێ",
+        viewBusinesses: "کارەکان ببینە",
+        seeTrending: "تریندەکان ببینە",
+        joinOwner: "وەک خاوەن کار بەشداربە"
     },
     events: {
         personalizedTitle: "بۆنەکان، تایبەت بۆ تۆ",
@@ -2139,6 +2159,7 @@ export const translations = {
         growBusiness: "کارت گەشە پێ بدە",
         continueGoogle: "بەردەوام بە لەگەڵ Google",
         orEmail: "یان بەردەوام بە بە ئیمەیڵ",
+        emailComingSoon: "چوونەژوورەوە بە ئیمەیڵ بەمزووانە دێت",
         noAccount: "هەژمارت نییە؟ ناوت تۆمار بکە",
         haveAccount: "پێشتر هەژمارت دروستکردووە؟ بچۆ ژوورەوە",
     },
@@ -2153,6 +2174,9 @@ export const translations = {
         postPlaceholder: "چی نوێ هەیە لە کارتدا؟",
         addPhoto: "وێنە زیاد بکە",
         post: "بڵاوکردنەوە",
+        createPostCta: "پۆستێک دروست بکە",
+        currentRole: "ڕۆڵی ئێستا",
+        ownerOnlyPosting: "بڵاوکردنەوە تەنها بۆ خاوەن کارەکانە. وەک خاوەن کار تۆمار بکە بۆ دەستپێکردن.",
     },
     dashboard: {
         welcome: "بەخێربێیت",

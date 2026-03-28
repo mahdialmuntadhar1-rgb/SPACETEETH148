@@ -3,9 +3,16 @@ import { heroSlides } from '../constants';
 import { useTranslations } from '../hooks/useTranslations';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const HeroSection: React.FC = () => {
+interface HeroSectionProps {
+    onRequestAuth: (preferredRole?: 'user' | 'owner') => void;
+}
+
+export const HeroSection: React.FC<HeroSectionProps> = ({ onRequestAuth }) => {
     const [activeSlide, setActiveSlide] = React.useState(0);
     const { t } = useTranslations();
+    const scrollToId = (id: string) => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
 
     React.useEffect(() => {
         const timer = setInterval(() => {
@@ -53,11 +60,17 @@ export const HeroSection: React.FC = () => {
                             {t(heroSlides[activeSlide].subtitleKey)}
                         </p>
                         <div className="flex flex-wrap gap-4 justify-center">
-                            <button className="px-8 py-4 rounded-full bg-primary text-white font-semibold hover:shadow-glow-primary transition-all duration-300 transform hover:scale-105">
-                                {t('actions.exploreNow') || 'Explore Now'}
+                            <button onClick={() => scrollToId('stories')} className="px-8 py-4 rounded-full bg-primary text-white font-semibold hover:shadow-glow-primary transition-all duration-300 transform hover:scale-105">
+                                {t('actions.exploreCity')}
                             </button>
-                            <button className="px-8 py-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-semibold hover:bg-white/20 transition-all duration-300">
-                                {t('actions.learnMore') || 'Learn More'}
+                            <button onClick={() => scrollToId('businesses')} className="px-8 py-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-semibold hover:bg-white/20 transition-all duration-300">
+                                {t('actions.viewBusinesses')}
+                            </button>
+                            <button onClick={() => scrollToId('trending')} className="px-8 py-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-semibold hover:bg-white/20 transition-all duration-300">
+                                {t('actions.seeTrending')}
+                            </button>
+                            <button onClick={() => onRequestAuth('owner')} className="px-8 py-4 rounded-full bg-secondary/20 backdrop-blur-md border border-secondary/40 text-white font-semibold hover:bg-secondary/30 transition-all duration-300">
+                                {t('actions.joinOwner')}
                             </button>
                         </div>
                     </motion.div>
