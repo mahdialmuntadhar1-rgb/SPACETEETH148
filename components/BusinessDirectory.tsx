@@ -18,8 +18,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({ business, viewMode }) => {
                       lang === 'ku' && business.nameKu ? business.nameKu : 
                       business.name;
                       
-  const displayImage = business.imageUrl || business.image || business.coverImage || 'https://picsum.photos/seed/placeholder/400/300';
-  const displayReviews = business.reviewCount ?? business.reviews ?? 0;
+  const displayImage = business.imageUrl || business.coverImage || 'https://picsum.photos/seed/placeholder/400/300';
+  const displayReviews = business.reviewCount ?? 0;
   const isVerified = business.isVerified ?? false;
 
   if (viewMode === 'list') {
@@ -31,7 +31,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({ business, viewMode }) => {
           <p className="text-white/60 text-sm mb-2">{t(categories.find(c => c.id === business.category)?.nameKey || business.category)}</p>
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1"><Star className="w-4 h-4 text-accent fill-accent" /><span className="text-white">{business.rating}</span></div>
-            <div className="flex items-center gap-1 text-white/60"><MapPin className="w-4 h-4" />{business.distance || '1.2'} km</div>
+            <div className="flex items-center gap-1 text-white/60"><MapPin className="w-4 h-4" />{business.distance ? `${business.distance} km` : (business.city || t('directory.city'))}</div>
           </div>
         </div>
         <div className="flex flex-col justify-center gap-2">

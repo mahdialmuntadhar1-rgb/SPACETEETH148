@@ -5,7 +5,6 @@ import { Crown, Star, MapPin, ChevronRight, ChevronLeft, X } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 import { GlassCard } from './GlassCard';
 import { motion } from 'motion/react';
-import { mockData, type GovernorateId } from '../services/mockData';
 
 interface FeaturedBusinessesProps {
   selectedGovernorate: string;
@@ -15,19 +14,21 @@ export const FeaturedBusinesses: React.FC<FeaturedBusinessesProps> = ({ selected
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { t, lang } = useTranslations();
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchFeatured = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const result = await api.getBusinesses({ featuredOnly: true, governorate: selectedGovernorate, limit: 10 });
-        const governorateData = mockData.featured((selectedGovernorate || 'all') as GovernorateId);
-        setBusinesses(result.data.length > 0 ? result.data : governorateData);
+        setBusinesses(result.data);
       } catch (error) {
         console.error('Error fetching featured businesses:', error);
-        setBusinesses(mockData.featured((selectedGovernorate || 'all') as GovernorateId));
+        setBusinesses([]);
+        setError(t('directory.errorLoading'));
       } finally {
         setIsLoading(false);
       }
@@ -75,7 +76,12 @@ export const FeaturedBusinesses: React.FC<FeaturedBusinessesProps> = ({ selected
         </div>
 
         <div ref={scrollRef} className="flex gap-8 overflow-x-auto pb-8 scrollbar-hide snap-x snap-mandatory">
-          {businesses.length === 0 ? (
+          {error ? (
+            <div className="w-full py-20 flex flex-col items-center justify-center text-center backdrop-blur-xl bg-white/5 rounded-3xl border border-red-500/30">
+              <h3 className="text-white font-bold text-xl mb-2">{t('directory.errorTitle')}</h3>
+              <p className="text-white/50 text-base max-w-xs mx-auto">{error}</p>
+            </div>
+          ) : businesses.length === 0 ? (
             <div className="w-full py-20 flex flex-col items-center justify-center text-center backdrop-blur-xl bg-white/5 rounded-3xl border border-white/10">
               <Crown className="w-16 h-16 text-white/10 mb-6" />
               <h3 className="text-white font-bold text-xl mb-2">{t('featured.noFeaturedTitle') || 'No Featured Listings'}</h3>
@@ -84,7 +90,7 @@ export const FeaturedBusinesses: React.FC<FeaturedBusinessesProps> = ({ selected
           ) : (
             businesses.map((business, index) => {
               const displayName = lang === 'ar' && business.nameAr ? business.nameAr : lang === 'ku' && business.nameKu ? business.nameKu : business.name;
-              const displayImage = business.coverImage || business.imageUrl || business.image || 'https://picsum.photos/seed/placeholder/600/400';
+              const displayImage = business.coverImage || business.imageUrl || 'https://picsum.photos/seed/placeholder/600/400';
               const isPremium = business.isPremium || business.isFeatured;
 
               return (

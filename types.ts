@@ -1,7 +1,7 @@
 import type React from 'react';
 
 export interface Story {
-  id: number;
+  id: string | number;
   avatar: string;
   name: string;
   viewed?: boolean;
@@ -148,7 +148,7 @@ export interface BusinessPostcard {
 }
 
 export interface HeroSlide {
-    id: number;
+    id: string | number;
     title?: string;
     subtitle?: string;
     titleKey: string;

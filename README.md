@@ -1,36 +1,41 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
 # Iraq Compass (Supabase-only)
 
-This app now uses **Supabase as the only backend** for:
-- Auth
-- Database reads/writes
-- Realtime post updates
+Iraq Compass is a production-focused Iraq business directory app that uses **Supabase as the only backend**.
 
-Firebase has been removed from runtime code, config, dependencies, and setup.
+## What this app includes
+
+- Supabase Auth integration (Google OAuth + profile sync)
+- Supabase-backed business directory listings
+- Supabase-backed featured businesses, events, stories, deals, and postcards
+- Owner/admin dashboard with profile updates, post publishing, and postcard ingestion
+- Multilingual UI (English, Arabic, Kurdish)
+
+## Backend policy
+
+- Firebase is not used.
+- Mock/demo business datasets are not used in the production data flow.
+- App data reads/writes go through Supabase tables in `supabase/migrations/20260328_bootstrap_public_tables.sql`.
 
 ## Local setup
 
-**Prerequisites:** Node.js 20+.
+**Prerequisites:** Node.js 20+
 
 1. Install dependencies:
    ```bash
    npm install
    ```
-2. Create `.env.local` with required variables:
-   ```env
-   VITE_SUPABASE_URL=your_supabase_project_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   VITE_GEMINI_API_KEY=your_gemini_api_key
-   ```
+2. Create `.env.local` (or `.env`) from `.env.example` and set values.
 3. Run the app:
    ```bash
    npm run dev
    ```
 
-## Build and checks
+## Required environment variables
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+## Checks
 
 ```bash
 npm run lint
@@ -39,10 +44,8 @@ npm run build
 ./scripts/verify-deploy.sh
 ```
 
-## Supabase architecture notes
+## Deployment notes
 
-- Supabase client initialization: `services/supabase.ts`
-- Auth session + app auth state wiring: `App.tsx`
-- OAuth sign-in entry point: `components/AuthModal.tsx`
-- Main data access layer: `services/api.ts`
-- Schema bootstrap migration: `supabase/migrations/20260328_bootstrap_public_tables.sql`
+- Ensure hosting provider env vars are set for `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- Ensure Supabase OAuth redirect URLs are configured for your production domain.
+- Apply the SQL migration in `supabase/migrations/20260328_bootstrap_public_tables.sql` before production launch.

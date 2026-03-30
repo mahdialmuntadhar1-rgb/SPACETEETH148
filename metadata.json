@@ -1,7 +1,5 @@
 {
-  "name": "nanananaestalaxwana",
-  "description": "A futuristic, AI-powered event and business discovery platform for Iraq, featuring a glassmorphic design and multilingual support.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
+  "name": "iraq-compass",
+  "description": "Iraq Compass is a Supabase-only Iraq business directory and discovery platform with multilingual support.",
+  "requestFramePermissions": []
 }

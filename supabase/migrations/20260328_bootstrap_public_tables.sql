@@ -44,7 +44,8 @@ create table if not exists public.posts (
   "imageUrl" text,
   "createdAt" timestamptz not null default now(),
   likes integer not null default 0,
-  "isVerified" boolean not null default false
+  "isVerified" boolean not null default false,
+  governorate text
 );
 
 create table if not exists public.deals (
@@ -72,6 +73,7 @@ create table if not exists public.stories (
   "isLive" boolean not null default false,
   media text[] not null default '{}',
   "timeAgo" text,
+  governorate text,
   "createdAt" timestamptz not null default now()
 );
 
@@ -130,6 +132,10 @@ alter table public.stories enable row level security;
 alter table public.events enable row level security;
 alter table public.users enable row level security;
 alter table public.business_postcards enable row level security;
+
+alter table public.posts add column if not exists governorate text;
+alter table public.stories add column if not exists governorate text;
+
 
 drop policy if exists "public read businesses" on public.businesses;
 create policy "public read businesses" on public.businesses
@@ -228,7 +234,7 @@ set name = excluded.name,
     lat = excluded.lat,
     lng = excluded.lng;
 
-insert into public.posts ("businessId", "businessName", "businessAvatar", caption, "imageUrl", likes, "isVerified")
+insert into public.posts ("businessId", "businessName", "businessAvatar", caption, "imageUrl", likes, "isVerified", governorate)
 values (
   'baghdad-river-cafe',
   'Baghdad River Cafe',
@@ -236,7 +242,8 @@ values (
   'Freshly roasted beans just arrived this morning ☕️',
   'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085',
   18,
-  true
+  true,
+  'Baghdad'
 )
 on conflict do nothing;
 
@@ -252,7 +259,7 @@ values (
 )
 on conflict do nothing;
 
-insert into public.stories (avatar, name, viewed, verified, thumbnail, "userName", type, "aiVerified", "isLive", media, "timeAgo")
+insert into public.stories (avatar, name, viewed, verified, thumbnail, "userName", type, "aiVerified", "isLive", media, "timeAgo", governorate)
 values (
   'https://images.unsplash.com/photo-1544005313-94ddf0286df2',
   'Baghdad River Cafe',
@@ -264,7 +271,8 @@ values (
   true,
   false,
   array['https://images.unsplash.com/photo-1495474472287-4d71bcdd2085'],
-  '2h ago'
+  '2h ago',
+  'Baghdad'
 )
 on conflict do nothing;
 
@@ -318,7 +326,8 @@ values (
   'https://maps.google.com/?q=33.3090,44.4320',
   4.7,
   124,
-  true
+  true,
+  'Baghdad'
 )
 on conflict (id) do update
 set title = excluded.title,

@@ -4,7 +4,6 @@ import type { Story } from '../types';
 import { Briefcase, Users, ShieldCheck, Plus } from './icons';
 import { StoryViewer } from './StoryViewer';
 import { useTranslations } from '../hooks/useTranslations';
-import { mockData, type GovernorateId } from '../services/mockData';
 
 interface CommunityStoriesProps {
   selectedGovernorate: string;
@@ -14,22 +13,26 @@ export const CommunityStories: React.FC<CommunityStoriesProps> = ({ selectedGove
   const [stories, setStories] = useState<Story[]>([]);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { t } = useTranslations();
 
   useEffect(() => {
     const fetchStories = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const data = await api.getStories();
-        const normalizedGov = (selectedGovernorate || 'all') as GovernorateId;
-        const supabaseStories = normalizedGov === 'all'
-          ? data
-          : data.filter((item: any) => (item.governorate || '').toLowerCase() === normalizedGov);
+        if (selectedGovernorate === 'all') {
+          setStories(data);
+          return;
+        }
 
-        setStories(supabaseStories.length > 0 ? supabaseStories : mockData.stories(normalizedGov));
+        const supabaseStories = data.filter((item: Story) => (item.governorate || '').toLowerCase() === selectedGovernorate);
+        setStories(supabaseStories.length > 0 ? supabaseStories : data);
       } catch (error) {
         console.error('Error fetching stories:', error);
-        setStories(mockData.stories((selectedGovernorate || 'all') as GovernorateId));
+        setStories([]);
+        setError(t('directory.errorLoading'));
       } finally {
         setIsLoading(false);
       }
@@ -52,7 +55,9 @@ export const CommunityStories: React.FC<CommunityStoriesProps> = ({ selectedGove
           {t('stories.communityTitle')}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {stories.length === 0 ? (
+          {error ? (
+            <div className="col-span-full py-12 text-center text-red-300">{error}</div>
+          ) : stories.length === 0 ? (
             <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-50">
               <Plus className="w-12 h-12 text-white/20 mb-4" />
               <p className="text-white/60 text-sm">{t('stories.noStories') || "No stories shared yet."}</p>

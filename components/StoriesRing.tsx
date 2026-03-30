@@ -3,7 +3,7 @@ import { useTranslations } from '../hooks/useTranslations';
 import { Check, Plus } from './icons';
 import { StoryViewer } from './StoryViewer';
 import type { Story } from '../types';
-import { mockData, type GovernorateId } from '../services/mockData';
+import { api } from '../services/api';
 
 const AddStoryButton = () => {
     const { t } = useTranslations();
@@ -17,7 +17,7 @@ const AddStoryButton = () => {
             <p className="text-xs text-white/80 text-center mt-2 max-w-[80px] truncate">{t('stories.addSoon')}</p>
         </div>
     );
-}
+};
 
 interface StoriesRingProps {
     selectedGovernorate: string;
@@ -25,10 +25,27 @@ interface StoriesRingProps {
 
 export const StoriesRing: React.FC<StoriesRingProps> = ({ selectedGovernorate }) => {
     const [activeStory, setActiveStory] = React.useState<Story | null>(null);
-    const ringStories = React.useMemo(
-        () => mockData.stories((selectedGovernorate || 'all') as GovernorateId),
-        [selectedGovernorate],
-    );
+    const [ringStories, setRingStories] = React.useState<Story[]>([]);
+
+    React.useEffect(() => {
+        const fetchStories = async () => {
+            try {
+                const data = await api.getStories();
+                if (selectedGovernorate === 'all') {
+                    setRingStories(data);
+                    return;
+                }
+
+                const filtered = data.filter((item: Story) => (item.governorate || '').toLowerCase() === selectedGovernorate);
+                setRingStories(filtered.length > 0 ? filtered : data);
+            } catch (error) {
+                console.error('Failed to load stories ring:', error);
+                setRingStories([]);
+            }
+        };
+
+        void fetchStories();
+    }, [selectedGovernorate]);
 
     return (
         <>
@@ -40,8 +57,8 @@ export const StoriesRing: React.FC<StoriesRingProps> = ({ selectedGovernorate })
                                 <button type="button" onClick={() => setActiveStory(story)} className="text-start">
                                     <div className={`relative w-20 h-20 rounded-full p-0.5 ${story.viewed ? 'bg-white/20' : 'bg-gradient-to-tr from-primary via-accent to-secondary'}`}>
                                         <div className="w-full h-full rounded-full backdrop-blur-xl bg-dark-bg/80 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform p-1">
-                                            <img 
-                                                src={story.avatar} 
+                                            <img
+                                                src={story.avatar}
                                                 alt={story.name}
                                                 className="w-full h-full rounded-full object-cover"
                                             />

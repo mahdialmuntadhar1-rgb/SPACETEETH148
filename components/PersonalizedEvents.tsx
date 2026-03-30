@@ -4,7 +4,6 @@ import type { Event } from '../types';
 import { Sparkles, MapPin, Clock, Users, Calendar, X } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 import { GlassCard } from './GlassCard';
-import { mockData, type GovernorateId } from '../services/mockData';
 
 interface PersonalizedEventsProps {
   selectedGovernorate: string;
@@ -15,11 +14,13 @@ export const PersonalizedEvents: React.FC<PersonalizedEventsProps> = ({ selected
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { t } = useTranslations();
 
   useEffect(() => {
     const fetchEvents = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const categoryMap: Record<string, string | undefined> = {
           forYou: undefined,
@@ -29,11 +30,11 @@ export const PersonalizedEvents: React.FC<PersonalizedEventsProps> = ({ selected
         };
         const governorate = selectedGovernorate !== 'all' ? selectedGovernorate : undefined;
         const data = await api.getEvents({ category: categoryMap[activeTab], governorate });
-        const normalizedGov = (selectedGovernorate || 'all') as GovernorateId;
-        setEvents(data.length > 0 ? data : mockData.events(normalizedGov));
+        setEvents(data);
       } catch (error) {
         console.error('Error fetching events:', error);
-        setEvents(mockData.events((selectedGovernorate || 'all') as GovernorateId));
+        setEvents([]);
+        setError(t('directory.errorLoading'));
       } finally {
         setIsLoading(false);
       }
@@ -58,7 +59,12 @@ export const PersonalizedEvents: React.FC<PersonalizedEventsProps> = ({ selected
         ) : (
           <div key={activeTab} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-grid">
             <style>{`@keyframes fade-in-grid {from { opacity: 0; transform: translateY(1rem); } to { opacity: 1; transform: translateY(0); }} .animate-fade-in-grid { animation: fade-in-grid 0.5s ease-in-out forwards; }`}</style>
-            {events.length === 0 ? (
+            {error ? (
+              <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-80">
+                <Calendar className="w-12 h-12 text-red-400/70 mb-4" />
+                <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            ) : events.length === 0 ? (
               <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-50">
                 <Calendar className="w-12 h-12 text-white/20 mb-4" />
                 <p className="text-white/60 text-sm">{t('events.noEvents') || 'No events found for this category.'}</p>

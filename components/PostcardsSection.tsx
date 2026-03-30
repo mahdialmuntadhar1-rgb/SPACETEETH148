@@ -4,7 +4,6 @@ import type { BusinessPostcard } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
 import { GlassCard } from './GlassCard';
 import { MapPin, Star, X } from './icons';
-import { mockData, type GovernorateId } from '../services/mockData';
 
 interface PostcardsSectionProps {
   selectedGovernorate: string;
@@ -14,16 +13,18 @@ export const PostcardsSection: React.FC<PostcardsSectionProps> = ({ selectedGove
   const { t } = useTranslations();
   const [cards, setCards] = React.useState<BusinessPostcard[]>([]);
   const [selected, setSelected] = React.useState<BusinessPostcard | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const fetchCards = async () => {
       try {
+        setError(null);
         const data = await api.getPostcards(selectedGovernorate !== 'all' ? selectedGovernorate : undefined);
-        const fallback = mockData.postcards((selectedGovernorate || 'all') as GovernorateId);
-        setCards(data.length > 0 ? data : fallback);
+        setCards(data);
       } catch (error) {
         console.error('Error loading postcards', error);
-        setCards(mockData.postcards((selectedGovernorate || 'all') as GovernorateId));
+        setCards([]);
+        setError(t('directory.errorLoading'));
       }
     };
     void fetchCards();
@@ -34,7 +35,11 @@ export const PostcardsSection: React.FC<PostcardsSectionProps> = ({ selectedGove
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-white mb-8 text-center">{t('postcards.title')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cards.map((card) => (
+          {error ? (
+            <div className="col-span-full py-10 text-center text-red-300">{error}</div>
+          ) : cards.length === 0 ? (
+            <div className="col-span-full py-10 text-center text-white/60">{t('stories.noStories')}</div>
+          ) : cards.map((card) => (
             <button key={card.id} onClick={() => setSelected(card)} className="text-start">
               <GlassCard className="p-0 overflow-hidden hover:border-primary/40 border-white/10 transition-all h-full">
                 <img src={card.hero_image} alt={card.title} className="w-full h-40 object-cover" />

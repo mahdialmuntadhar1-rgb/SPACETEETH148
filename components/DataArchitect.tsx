@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { GoogleGenAI } from '@google/genai';
-import { Sparkles, CheckCircle, X, ShieldCheck, Briefcase, MapPin, Navigation } from './icons';
+import { Sparkles, CheckCircle, X, ShieldCheck, Briefcase, Navigation } from './icons';
 import { GlassCard } from './GlassCard';
 import { api } from '../services/api';
 import type { BusinessPostcard } from '../types';
@@ -39,24 +38,19 @@ export const DataArchitect: React.FC = () => {
     try {
       const data = JSON.parse(rawJson);
       const places = Array.isArray(data) ? data : (data.places || []);
-      
+
       let verifiedCount = 0;
       let rejectedCount = 0;
       const flagged: { name: string; city: string; reason: string }[] = [];
-      const postcards: BusinessPostcard[] = [];
-
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY as string });
 
       for (const place of places) {
         const name = place.title || place.name;
         const phone = place.phone || place.phoneNumber;
         const category = place.categoryName || place.category;
         const images = place.images || place.imageUrls || [];
-        const reviews = place.reviews || [];
-        
+
         addLog(`Verifying: ${name}...`);
 
-        // STEP 2: VERIFICATION FILTER
         if (!phone || !phone.startsWith('+964')) {
           flagged.push({ name, city: selectedGovernorate, reason: 'No +964 phone number' });
           rejectedCount++;
@@ -70,60 +64,36 @@ export const DataArchitect: React.FC = () => {
           continue;
         }
 
-        if (images.length < 3) {
-          flagged.push({ name, city: selectedGovernorate, reason: `Insufficient images (${images.length})` });
+        if (images.length < 1) {
+          flagged.push({ name, city: selectedGovernorate, reason: 'Missing images' });
           rejectedCount++;
           continue;
         }
 
-        // STEP 3: NORMALIZATION
-        const neighborhood = place.neighborhood || place.sublocality || 'City Center';
-        const city = selectedGovernorate; // Governorate capital logic simplified for this demo
-
-        // STEP 4: POSTCARD GENERATION
-        addLog(`Generating AI tagline for ${name}...`);
-        const topReviews = reviews.slice(0, 3).map((r: any) => r.text).join('\n');
-        
-        let tagline = `${name} in ${city}`;
-        try {
-            const aiResponse = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
-                contents: `You are a creative copywriter for a local business discovery app in Iraq.
-                Based on these Google Maps reviews for "${name}":
-                ${topReviews}
-                Write a single punchy tagline (max 15 words) that captures the vibe of this business.
-                Tone: warm, local, confident. No emojis. No generic phrases like "best in town."`
-            });
-            tagline = aiResponse.text.trim().replace(/^"|"$/g, '');
-        } catch (err) {
-            console.error("AI Generation failed", err);
-        }
-
         const postcard: BusinessPostcard = {
           title: name,
-          city,
-          neighborhood,
+          city: selectedGovernorate,
+          neighborhood: place.neighborhood || place.sublocality || 'Not specified',
           governorate: selectedGovernorate,
-          category_tag: matchedCategory as any,
+          category_tag: matchedCategory as BusinessPostcard['category_tag'],
           phone,
           website: place.website,
           instagram: place.instagram,
           hero_image: images[0],
           image_gallery: images.slice(0, 5),
-          postcard_content: tagline,
-          google_maps_url: place.url || place.googleMapsUrl,
+          postcard_content: place.description || `${name} listing imported by admin.`,
+          google_maps_url: place.url || place.googleMapsUrl || '',
           rating: place.totalScore || place.rating || 0,
           review_count: place.reviewsCount || place.reviewCount || 0,
-          verified: true
+          verified: true,
         };
 
-        // STEP 6: UPSERT
         const result = await api.upsertPostcard(postcard);
         if (result.success) {
-          postcards.push(postcard);
           verifiedCount++;
           addLog(`✅ Successfully upserted: ${name}`);
         } else {
+          rejectedCount++;
           addLog(`❌ Failed to upsert: ${name}`);
         }
       }
@@ -132,12 +102,12 @@ export const DataArchitect: React.FC = () => {
         total_found: places.length,
         total_verified: verifiedCount,
         total_rejected: rejectedCount,
-        flagged_businesses: flagged
+        flagged_businesses: flagged,
       });
       addLog(`Pipeline complete for ${selectedGovernorate}.`);
 
     } catch (err) {
-      console.error("Pipeline failed", err);
+      console.error('Pipeline failed', err);
       addLog(`Critical Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
@@ -150,19 +120,19 @@ export const DataArchitect: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-primary" />
-            AI Data Architect
+            Data Architect
           </h2>
           <p className="text-white/60 text-sm">Collect, verify, and format business data across Iraq.</p>
         </div>
         <div className="flex items-center gap-3">
-          <select 
+          <select
             value={selectedGovernorate}
             onChange={(e) => setSelectedGovernorate(e.target.value)}
             className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-primary transition-all"
           >
             {GOVERNORATES.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
-          <button 
+          <button
             onClick={processPipeline}
             disabled={isProcessing || !rawJson.trim()}
             className="px-6 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-semibold hover:shadow-glow-primary transition-all flex items-center gap-2 disabled:opacity-50"
@@ -178,19 +148,19 @@ export const DataArchitect: React.FC = () => {
           <div className="flex items-center justify-between">
             <h3 className="text-white font-semibold flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-secondary" />
-              Raw Apify Input (JSON)
+              Raw Input (JSON)
             </h3>
-            <button 
+            <button
               onClick={() => setRawJson('')}
               className="text-white/40 hover:text-white text-xs transition-all"
             >
               Clear
             </button>
           </div>
-          <textarea 
+          <textarea
             value={rawJson}
             onChange={(e) => setRawJson(e.target.value)}
-            placeholder='Paste your Google Maps Scraper results here (JSON array)...'
+            placeholder='Paste business results here (JSON array)...'
             className="w-full h-[400px] bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-mono text-xs outline-none focus:border-primary transition-all resize-none"
           />
         </div>
@@ -221,20 +191,12 @@ export const DataArchitect: React.FC = () => {
               <CheckCircle className="w-6 h-6 text-green-400" />
               Pipeline Report: {selectedGovernorate}
             </h3>
-            <div className="flex gap-4">
-              <div className="text-center">
-                <p className="text-white/40 text-[10px] uppercase tracking-wider">Found</p>
-                <p className="text-xl font-bold text-white">{report.total_found}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-white/40 text-[10px] uppercase tracking-wider">Verified</p>
-                <p className="text-xl font-bold text-green-400">{report.total_verified}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-white/40 text-[10px] uppercase tracking-wider">Rejected</p>
-                <p className="text-xl font-bold text-red-400">{report.total_rejected}</p>
-              </div>
-            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mb-6 text-center">
+            <div><p className="text-white/40 text-[10px] uppercase tracking-wider">Found</p><p className="text-xl font-bold text-white">{report.total_found}</p></div>
+            <div><p className="text-white/40 text-[10px] uppercase tracking-wider">Verified</p><p className="text-xl font-bold text-green-400">{report.total_verified}</p></div>
+            <div><p className="text-white/40 text-[10px] uppercase tracking-wider">Rejected</p><p className="text-xl font-bold text-red-400">{report.total_rejected}</p></div>
           </div>
 
           <div className="space-y-4">
@@ -251,9 +213,6 @@ export const DataArchitect: React.FC = () => {
                   </div>
                 </div>
               ))}
-              {report.flagged_businesses.length === 0 && (
-                <p className="text-white/40 text-sm italic">No businesses were flagged.</p>
-              )}
             </div>
           </div>
         </GlassCard>

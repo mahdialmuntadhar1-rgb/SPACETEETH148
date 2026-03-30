@@ -13,7 +13,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 
 import { translations } from './constants';
-import { mockData, type GovernorateId } from './services/mockData';
 
 const getTranslation = (key: string) => {
   const lang = (localStorage.getItem('iraq-compass-lang') as 'en' | 'ar' | 'ku') || 'en';
@@ -207,13 +206,9 @@ const MainContent: React.FC = () => {
 
 
   const visiblePosts = React.useMemo(() => {
-    const normalizedGov = (selectedGovernorate || 'all') as GovernorateId;
-    const normalizedPosts = normalizedGov === 'all'
-      ? posts
-      : posts.filter((post) => (post.governorate || '').toLowerCase() === normalizedGov);
-
-    if (normalizedPosts.length > 0) return normalizedPosts;
-    return mockData.posts(normalizedGov);
+    if (selectedGovernorate === 'all') return posts;
+    const filtered = posts.filter((post) => (post.governorate || '').toLowerCase() === selectedGovernorate);
+    return filtered.length > 0 ? filtered : posts;
   }, [posts, selectedGovernorate]);
 
   const handleJoinOwner = () => {

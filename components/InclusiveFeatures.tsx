@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { inclusiveFeaturesList, events, format } from '../constants';
+import { inclusiveFeaturesList, format } from '../constants';
+import { api } from '../services/api';
 import type { Event } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
 import { Check, X, MapPin, Clock } from './icons';
@@ -178,7 +179,22 @@ const VisualAccessibilitySettings: React.FC<InclusiveFeaturesProps> = ({ highCon
 
 export const InclusiveFeatures: React.FC<InclusiveFeaturesProps> = ({ highContrast, setHighContrast }) => {
     const [activeFilters, setActiveFilters] = useState<string[]>([]);
+    const [events, setEvents] = useState<Event[]>([]);
     const { t } = useTranslations();
+
+    React.useEffect(() => {
+        const loadEvents = async () => {
+            try {
+                const data = await api.getEvents();
+                setEvents(data);
+            } catch (error) {
+                console.error('Failed to load accessible events:', error);
+                setEvents([]);
+            }
+        };
+
+        void loadEvents();
+    }, []);
 
     const toggleFilter = (filter: string) => {
         setActiveFilters(prev => 
